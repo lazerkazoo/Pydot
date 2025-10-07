@@ -1,8 +1,15 @@
+import json
+import os
+import shutil
 from tkinter import *
 from tkinter.filedialog import askdirectory
+
 from editor import GameEditor
 from style_manager import StyleManager
-import os, shutil, subprocess, sys
+
+with open("themes.json") as f:
+    theme = json.load(f)["selected"]
+    f.close()
 
 
 class App:
@@ -11,11 +18,10 @@ class App:
         self.win.title("PyDot")
 
         # Initialize style manager for testing
-        self.style = StyleManager()
+        self.style = StyleManager(theme)
         self.style.apply_to_window(self.win)
 
-        self.win.columnconfigure(0, minsize=1280)
-        self.win.geometry("1280x720")
+        self.win.geometry("720x720")
         self.pad = 2
         pad = self.pad
 
@@ -63,14 +69,36 @@ class App:
             global directory
             directory += f"/{name_en.get()}"
             if directory != "":
-                os.mkdir(f"{directory}")
-                os.mkdir(f"{directory}/scripts")
-                shutil.copyfile("scripts/default_game.py", f"{directory}/game.py")
-                shutil.copyfile("scripts/default_main.py", f"{directory}/main.py")
-                shutil.copy("scripts/default_text.py", f"{directory}/scripts/text.py")
-                shutil.copy(
-                    "scripts/default_button.py", f"{directory}/scripts/button.py"
-                )
+                dirs_to_make = [
+                    "scripts",
+                    "scripts/built_in",
+                    "scripts/custom",
+                    "assets",
+                    "assets/sprites",
+                    "assets/sfx",
+                    "assets/music",
+                ]
+                files_to_copy = [
+                    ("scripts/built_in/default_text.py", "scripts/built_in/text.py"),
+                    (
+                        "scripts/built_in/default_button.py",
+                        "scripts/built_in/button.py",
+                    ),
+                    (
+                        "scripts/built_in/default_sprite_manager.py",
+                        "scripts/built_in/sprite_manager.py",
+                    ),
+                    ("scripts/default_game.py", f"game.py"),
+                    ("scripts/default_main.py", f"main.py"),
+                ]
+
+                os.mkdir(directory)
+                for dir in dirs_to_make:
+                    os.mkdir(f"{directory}/{dir}")
+
+                for file in files_to_copy:
+                    shutil.copy(file[0], f"{directory}/{file[1]}")
+
                 name = name_en.get()
                 self.win.destroy()
                 GameEditor(name, directory)

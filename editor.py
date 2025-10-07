@@ -1,9 +1,11 @@
-from io import text_encoding
+import os
+import subprocess
+import threading
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-from tkinter.ttk import Style
+from tkinter.ttk import Combobox, Style
+
 from style_manager import StyleManager
-import os, subprocess
 
 
 class GameEditor:
@@ -14,6 +16,7 @@ class GameEditor:
         self.directory = directory
         self.current_file = None
         self.game_process = None
+        self.output_thread = None
 
         self.pad = 5
         pad = self.pad
@@ -33,14 +36,13 @@ class GameEditor:
 
         save_btn = Button(top_bar, text="Save", command=self.save_file)
 
-        start_btn = Button(top_bar, text="Start", command=self.start_game)
-
-        stop_btn = Button(top_bar, text="Stop", command=self.stop_game)
+        start_btn = Button(top_bar, text="Debug", command=self.debug)
 
         text_frame = Frame(self.win)
-
-        self.text_editor = Text(text_frame, wrap="none")
+        self.text_editor = Text(text_frame, wrap="none", tabs="0.85c")
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
+
+        self.console = Listbox(self.win, height=10)
 
         # Style Stuff
         self.style_manager.apply_to_frame(top_bar)
@@ -49,9 +51,9 @@ class GameEditor:
         self.style_manager.apply_to_button(open_btn)
         self.style_manager.apply_to_button(save_btn)
         self.style_manager.apply_to_button(start_btn)
-        self.style_manager.apply_to_button(stop_btn)
         self.style_manager.apply_to_frame(text_frame)
         self.style_manager.apply_to_text(self.text_editor)
+        self.style_manager.apply_to_listbox(self.console)
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
@@ -60,7 +62,6 @@ class GameEditor:
         open_btn.pack(side="left", padx=pad)
         save_btn.pack(side="left", padx=pad)
         start_btn.pack(side="right", padx=pad)
-        stop_btn.pack(side="right", padx=pad)
 
         # pack stuff 2 window
         self.text_editor.pack(side="left", fill="both", expand=True)
@@ -77,6 +78,14 @@ class GameEditor:
         self.win.bind("<Control-Shift-S>", lambda event: self.save_file_as())
         self.win.bind("<Control-n>", lambda event: self.new_file())
         self.win.bind("<Control-comma>", lambda event: self.open_settings())
+        self.win.bind("<F5>", lambda event: self.debug())
+
+        # Auto-completion key bindings
+        self.text_editor.bind("(", lambda event: self.complete("(", event))
+        self.text_editor.bind("[", lambda event: self.complete("[", event))
+        self.text_editor.bind("{", lambda event: self.complete("{", event))
+        self.text_editor.bind('"', lambda event: self.complete('"', event))
+        self.text_editor.bind("'", lambda event: self.complete("'", event))
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -88,7 +97,11 @@ class GameEditor:
     def open_file(self):
         file_path = askopenfilename(
             initialdir=self.directory,
-            filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+            filetypes=[
+                ("Python files", "*.py"),
+                ("Json Files", "*.json"),
+                ("All files", "*.*"),
+            ],
         )
 
         if not file_path:
@@ -121,7 +134,11 @@ class GameEditor:
         file_path = asksaveasfilename(
             initialdir=self.directory,
             defaultextension=".py",
-            filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+            filetypes=[
+                ("Python files", "*.py"),
+                ("Json Files", "*.json"),
+                ("All files", "*.*"),
+            ],
         )
 
         if file_path:
@@ -138,35 +155,63 @@ class GameEditor:
         popup = Toplevel(self.win)
 
         self.style_manager.apply_to_window(popup)
-
-        popup.mainloop()
+        # Make the popup modal without starting a nested mainloop
+        try:
+            popup.transient(self.win)
+            popup.grab_set()
+            popup.focus_set()
+            popup.lift()
+        except Exception:
+            pass
 
     def new_file(self):
         pad = self.pad
 
-        def create(file: str):
+        # Define types dictionary at the method level for proper scope
+        types = {
+            "Python": [".py", "/scripts/custom/"],
+            "Json": [".json", "/data/"],
+            "Any": ["", "/scripts/"],
+        }
+
+        def create(file: str, type_cb):
+            new_file_path = ""
             file = file.lower()
 
             if not file.strip():
                 return
 
             class_name = file.capitalize()
-            new_file_path = f"{self.directory}/scripts/{file}.py"
+            selected_type = type_cb.get()
+
+            for i in types:
+                if i == selected_type:
+                    print(types[selected_type][0], types[selected_type][1])
+                    if not os.path.exists(f"{self.directory}{types[selected_type][1]}"):
+                        os.mkdir(f"{self.directory}{types[selected_type][1]}")
+                    new_file_path = f"{self.directory}{types[selected_type][1]}{file}{types[selected_type][0]}"
+                    break
+
             main_file_path = f"{self.directory}/main.py"
 
             # Create the new class file
             with open(new_file_path, "w") as f:
-                f.write(
-                    f"import pygame as pydot\n\nclass {class_name}:\n   def __init__(self):\n        # put stuff here\n      pass"
-                )
+                if selected_type == "Python":
+                    f.write(
+                        f"import pygame as pydot\n\nclass {class_name}:\n    def __init__(self):\n        # put stuff here\n        pass"
+                    )
+                elif selected_type == "Json":
+                    f.write("{}")
+                else:
+                    f.write("")  # Empty file for "Any" type
 
-            # Update main.py to import the new class
-            if os.path.exists(main_file_path):
+            # Update main.py to import the new class (only for Python files)
+            if selected_type == "Python" and os.path.exists(main_file_path):
                 with open(main_file_path, "r") as r:
                     content = r.read()
 
                 # Add import line at the beginning
-                import_line = f"from scripts.{file} import {class_name}\n"
+                import_line = f"from scripts.custom.{file} import {class_name}\n"
                 if import_line not in content:
                     updated_content = import_line + content
 
@@ -180,18 +225,24 @@ class GameEditor:
                 self.current_file = new_file_path
 
         def create_new():
-            popup = Toplevel(self.win)
-            popup.title("Create New File")
-
-            name_lbl = Label(popup, text="File Name (without .py):")
-            name_en = Entry(popup)
-            name_en.focus_set()
-
             def on_create():
                 file_name = name_en.get().strip()
                 if file_name:
-                    create(file_name)
+                    create(file_name, type_cb)
                     popup.destroy()
+
+            popup = Toplevel(self.win)
+            popup.title("Create New File")
+
+            type_var = StringVar()
+            type_cb = Combobox(popup, textvariable=type_var)
+            type_var.set("Python")
+            type_cb["values"] = ["Python", "Json", "Any"]
+            type_cb["state"] = "readonly"
+
+            name_lbl = Label(popup, text="File Name:")
+            name_en = Entry(popup)
+            name_en.focus_set()
 
             create_btn = Button(
                 popup,
@@ -211,6 +262,7 @@ class GameEditor:
             self.style_manager.apply_to_button(create_btn)
             self.style_manager.apply_to_button(cancel_btn)
 
+            type_cb.pack(pady=pad, fill="x")
             name_lbl.pack(pady=pad)
             name_en.pack(pady=pad, padx=pad, fill="x")
             create_btn.pack(side="left", padx=pad, pady=pad)
@@ -240,100 +292,20 @@ class GameEditor:
 
             popup.mainloop()
 
-    def start_game(self):
-        """Start the game by running the project's main.py or game.py"""
-        if not self.directory:
-            print("❌ No project directory set")
+    def debug(self):
+        target_file = f"{self.directory}/game.py"
+        self.console.insert(END, "Running the Game...")
+        subprocess.run(["python", target_file])
+
+    def complete(self, char: str, event) -> None:
+        chars = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'"}
+        closing_char = chars.get(char, "")
+
+        if closing_char:
+            cursor_pos = self.text_editor.index(INSERT)
+            self.text_editor.insert(cursor_pos, char)
+            self.text_editor.insert(f"{cursor_pos}+1c", closing_char)
+            self.text_editor.mark_set(INSERT, f"{cursor_pos}+1c")
             return
 
-        # Save current file before running
-        if self.current_file:
-            self.save_file()
-            print("💾 Saved current file")
-
-        # Find the game file to run
-        target_file = None
-        for filename in ["game.py", "main.py"]:
-            full_path = os.path.join(self.directory, filename)
-            if os.path.exists(full_path):
-                target_file = filename
-                break
-        
-        if not target_file:
-            print("❌ No game.py or main.py found in project directory")
-            return
-
-        try:
-            print(f"🚀 Starting game: {target_file}")
-            print(f"📁 Working directory: {self.directory}")
-            
-            # Create a simple command that works on Linux
-            cmd = ["python3", target_file]
-            
-            # Start the process with proper environment
-            self.game_process = subprocess.Popen(
-                cmd,
-                cwd=self.directory,
-                stdout=None,  # Let output go to terminal
-                stderr=None,  # Let errors go to terminal
-                stdin=None    # No input needed
-            )
-            
-            print(f"✅ Game process started with PID: {self.game_process.pid}")
-            
-            # Quick check if it started successfully
-            import time
-            time.sleep(0.2)
-            
-            if self.game_process.poll() is None:
-                print("🎮 Game is running! Look for the game window.")
-            else:
-                exit_code = self.game_process.returncode
-                print(f"❌ Game exited immediately with code: {exit_code}")
-                self.game_process = None
-                
-        except FileNotFoundError:
-            print("❌ Python3 not found. Trying 'python'...")
-            try:
-                cmd = ["python", target_file]
-                self.game_process = subprocess.Popen(
-                    cmd,
-                    cwd=self.directory,
-                    stdout=None,
-                    stderr=None,
-                    stdin=None
-                )
-                print(f"✅ Game started with PID: {self.game_process.pid}")
-            except Exception as e2:
-                print(f"❌ Failed to start with 'python': {e2}")
-                
-        except Exception as e:
-            print(f"❌ Error starting game: {e}")
-            import traceback
-            traceback.print_exc()
-            self.game_process = None
-
-    def stop_game(self):
-        """Stop the running game process"""
-        if self.game_process:
-            try:
-                print(f"🛑 Stopping game process (PID: {self.game_process.pid})")
-                self.game_process.terminate()
-                
-                # Wait a moment for graceful shutdown
-                import time
-                time.sleep(0.5)
-                
-                # Force kill if still running
-                if self.game_process.poll() is None:
-                    print("💀 Force killing game process")
-                    self.game_process.kill()
-                    
-                self.game_process = None
-                print("✅ Game stopped successfully")
-                
-            except Exception as e:
-                print(f"❌ Error stopping game: {e}")
-                self.game_process = None
-        else:
-            print("ℹ️  No game is currently running")
+        return

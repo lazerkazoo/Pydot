@@ -49,3 +49,11 @@ class StyleManager:
             selectbackground=self.current_theme["accent_blue"],
             selectforeground=self.current_theme["text_primary"],
         )
+
+    def apply_to_listbox(self, listbox):
+        listbox.configure(
+            bg=self.current_theme["bg_primary"],
+            fg=self.current_theme["text_primary"],
+            selectbackground=self.current_theme["accent_blue"],
+            selectforeground=self.current_theme["text_primary"],
+        )

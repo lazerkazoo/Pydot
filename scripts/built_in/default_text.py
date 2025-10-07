@@ -5,8 +5,8 @@ import pygame
 class Text:
     def __init__(
         self,
-        font_file: str,
-        font_size: int,
+        font_file: str = None,
+        font_size: int = 24,
         anti_a: bool = True,
         txt_color: str = "black",
         bg_color: str = "white",

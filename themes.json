@@ -82,5 +82,6 @@
     "accent_orange": "#e0af68",
     "accent_red": "#f7768e",
     "border": "#414868"
-  }
+  },
+  "selected":"vs_code_dark"
 }
