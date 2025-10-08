@@ -1,8 +1,9 @@
-import os
-import subprocess
-import re
-import keyword
 import json
+import os
+import re
+import subprocess
+from keyword import kwlist
+from time import sleep
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Combobox, Style
@@ -36,8 +37,6 @@ class GameEditor:
 
         top_bar = Frame(self.win, height=48)
 
-        settings_btn = Button(top_bar, text="Settings", command=self.open_settings)
-
         new_btn = Button(top_bar, text="New", command=self.new_file)
 
         open_btn = Button(top_bar, text="Open", command=self.open_file)
@@ -50,22 +49,17 @@ class GameEditor:
         self.text_editor = Text(text_frame, wrap="none", tabs="0.85c")
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
 
-        self.console = Listbox(self.win, height=10)
-
         # Style Stuff
         self.style_manager.apply_to_frame(top_bar)
-        self.style_manager.apply_to_button(settings_btn)
         self.style_manager.apply_to_button(new_btn)
         self.style_manager.apply_to_button(open_btn)
         self.style_manager.apply_to_button(save_btn)
         self.style_manager.apply_to_button(start_btn)
         self.style_manager.apply_to_frame(text_frame)
         self.style_manager.apply_to_text(self.text_editor)
-        self.style_manager.apply_to_listbox(self.console)
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
-        settings_btn.pack(side="left", padx=pad)
         new_btn.pack(side="left", padx=pad)
         open_btn.pack(side="left", padx=pad)
         save_btn.pack(side="left", padx=pad)
@@ -85,18 +79,18 @@ class GameEditor:
         self.win.bind("<Control-s>", lambda event: self.save_file())
         self.win.bind("<Control-Shift-S>", lambda event: self.save_file_as())
         self.win.bind("<Control-n>", lambda event: self.new_file())
-        self.win.bind("<Control-comma>", lambda event: self.open_settings())
         self.win.bind("<F5>", lambda event: self.debug())
 
         # Auto-completion key bindings
-        self.text_editor.bind("(", lambda event: self.complete("(", event))
-        self.text_editor.bind("[", lambda event: self.complete("[", event))
-        self.text_editor.bind("{", lambda event: self.complete("{", event))
-        self.text_editor.bind('"', lambda event: self.complete('"', event))
-        self.text_editor.bind("'", lambda event: self.complete("'", event))
+        self.text_editor.bind("(", lambda event: self.close("(", event))
+        self.text_editor.bind("[", lambda event: self.close("[", event))
+        self.text_editor.bind("{", lambda event: self.close("{", event))
+        self.text_editor.bind('"', lambda event: self.close('"', event))
+        self.text_editor.bind("'", lambda event: self.close("'", event))
         self.text_editor.bind("<Control-space>", lambda event: self.show_autocomplete())
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
+        self.text_editor.bind("<Return>", self.auto_indentation)
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -161,19 +155,6 @@ class GameEditor:
                 print(f"Saved as: {file_path}")
             except Exception as e:
                 print(f"Error saving file: {e}")
-
-    def open_settings(self):
-        popup = Toplevel(self.win)
-
-        self.style_manager.apply_to_window(popup)
-        # Make the popup modal without starting a nested mainloop
-        try:
-            popup.transient(self.win)
-            popup.grab_set()
-            popup.focus_set()
-            popup.lift()
-        except Exception:
-            pass
 
     def new_file(self):
         pad = self.pad
@@ -304,26 +285,28 @@ class GameEditor:
             popup.mainloop()
 
     def debug(self):
-        target_file = f"{self.directory}/game.py"
-        self.console.insert(END, "Running the Game...")
-        subprocess.run(["python", target_file])
+        self.save_file()
+        subprocess.run(["python", f"{self.directory}/game.py"])
 
-    def complete(self, char: str, event):
+    def close(self, char: str, event):
         chars = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'"}
         closing_char = chars.get(char, "")
 
         if closing_char:
             cursor_pos = self.text_editor.index(INSERT)
-            self.text_editor.insert(cursor_pos, char)
-            self.text_editor.insert(f"{cursor_pos}+1c", closing_char)
-            self.text_editor.mark_set(INSERT, f"{cursor_pos}+1c")
+            self.text_editor.insert(cursor_pos, closing_char)
+            line, col = cursor_pos.split(".")
+            new_pos = f"{line}.{int(col)}"
+            self.text_editor.mark_set(INSERT, new_pos)
+
+        return None
 
     def setup_autocomplete_data(self):
         try:
             with open("autocomplete_data.json", "r") as f:
                 data = json.load(f)
 
-            self.python_keywords = data.get("python_keywords", keyword.kwlist)
+            self.python_keywords = data.get("python_keywords", kwlist)
             self.python_builtins = data.get("python_builtins", [])
             self.pygame_functions = data.get("pygame_functions", [])
             self.pygame_constants = data.get("pygame_constants", [])
@@ -332,7 +315,7 @@ class GameEditor:
             self.code_snippets = data.get("code_snippets", {})
         except FileNotFoundError:
             # Fallback to basic data if config file doesn't exist
-            self.python_keywords = keyword.kwlist
+            self.python_keywords = kwlist
             self.python_builtins = [
                 "print",
                 "input",
@@ -664,6 +647,7 @@ class GameEditor:
         # Bind double-click and Enter
         snippet_listbox.bind("<Double-Button-1>", lambda e: insert_selected_snippet())
         snippet_listbox.bind("<Return>", lambda e: insert_selected_snippet())
+        snippet_listbox.bind("<Tab>", lambda e: insert_selected_snippet())
 
         # Apply styling
         self.style_manager.apply_to_window(snippet_popup)
@@ -674,3 +658,33 @@ class GameEditor:
         snippet_popup.focus_set()
         snippet_popup.transient(self.win)
         snippet_popup.grab_set()
+
+    def auto_indentation(self, event):
+        # Get current cursor position
+        current_pos = self.text_editor.index(INSERT)
+
+        # Get the current line content to determine indentation
+        current_line = self.text_editor.get(
+            f"{current_pos.split('.')[0]}.0", current_pos
+        )
+
+        # Calculate current indentation level
+        indent_level = 0
+        for char in current_line:
+            if char == " ":
+                indent_level += 1
+            elif char == "\t":
+                indent_level += 4  # Treat tab as 4 spaces
+            else:
+                break
+
+        # Check if current line ends with ':' to increase indentation
+        stripped_line = current_line.strip()
+        if stripped_line.endswith(":"):
+            indent_level += 4
+
+        # Insert newline with appropriate indentation
+        indent_str = " " * indent_level
+        self.text_editor.insert(INSERT, f"\n{indent_str}")
+
+        return "break"  # Prevent default newline behavior

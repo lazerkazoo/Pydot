@@ -39,17 +39,13 @@ class App:
             command=self.open_existing_project,
         )
 
-        settings_btn = Button(top_bar, text="Settings", command=self.open_settings)
-
         top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
         new_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
         open_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
-        settings_btn.pack(padx=pad, side="right", expand=True, fill="x")
 
         self.style.apply_to_frame(top_bar)
         self.style.apply_to_button(new_project_btn)
         self.style.apply_to_button(open_project_btn)
-        self.style.apply_to_button(settings_btn)
 
         self.win.bind("<Control-n>", lambda event: self.create_new_project())
         self.win.bind("<Control-o>", lambda event: self.open_existing_project())
@@ -57,6 +53,10 @@ class App:
         self.win.mainloop()
 
     def create_new_project(self):
+        with open("stuff_to_make.json") as f:
+            data = json.load(f)
+            dirs_to_make = data["dirs_to_make"]
+            files_to_copy = data["files_to_copy"]
         global directory
         directory = ""
 
@@ -74,35 +74,32 @@ class App:
             global directory
             directory += f"/{name_en.get()}"
             if directory != "":
-                dirs_to_make = [
-                    "scripts",
-                    "scripts/built_in",
-                    "scripts/custom",
-                    "assets",
-                    "assets/sprites",
-                    "assets/sfx",
-                    "assets/music",
-                ]
-                files_to_copy = [
-                    ("scripts/built_in/default_text.py", "scripts/built_in/text.py"),
-                    (
-                        "scripts/built_in/default_button.py",
-                        "scripts/built_in/button.py",
-                    ),
-                    (
-                        "scripts/built_in/default_sprite_manager.py",
-                        "scripts/built_in/sprite_manager.py",
-                    ),
-                    ("scripts/default_game.py", "game.py"),
-                    ("scripts/default_main.py", "main.py"),
-                ]
+                print(copy_classes.get())
 
                 os.mkdir(directory)
-                for dir in dirs_to_make:
-                    os.mkdir(f"{directory}/{dir}")
 
-                for file in files_to_copy:
-                    shutil.copy(file[0], f"{directory}/{file[1]}")
+                if copy_classes.get():
+                    for dir in dirs_to_make["no"]:
+                        os.mkdir(f"{directory}/{dir}")
+                    for dir in dirs_to_make["yes"]:
+                        os.mkdir(f"{directory}/{dir}")
+                    for file in files_to_copy["no"]:
+                        if os.path.exists(f"{directory}/{file[1]}"):
+                            os.remove(f"{directory}/{file[1]}")
+                        shutil.copy(file[0], f"{directory}/{file[1]}")
+                    for file in files_to_copy["yes"]:
+                        if os.path.exists(f"{directory}/{file[1]}"):
+                            os.remove(f"{directory}/{file[1]}")
+                        shutil.copy(file[0], f"{directory}/{file[1]}")
+                else:
+                    # Create directories from only "no" list
+                    for dir in dirs_to_make["no"]:
+                        os.mkdir(f"{directory}/{dir}")
+                    # Copy files from only "no" list
+                    for file in files_to_copy["no"]:
+                        if os.path.exists(f"{directory}/{file[1]}"):
+                            os.remove(f"{directory}/{file[1]}")
+                        shutil.copy(file[0], f"{directory}/{file[1]}")
 
                 name = name_en.get()
                 self.win.destroy()
@@ -130,6 +127,11 @@ class App:
 
         create_btn = Button(popup, text="Create", command=create)
 
+        copy_classes = BooleanVar(value=True)
+        copy_classes_check = Checkbutton(
+            popup, text="Copy Pydot Specific Classes?", variable=copy_classes
+        )
+
         self.style.apply_to_window(popup)
         self.style.apply_to_label(name_lbl)
         self.style.apply_to_entry(name_en)
@@ -137,14 +139,15 @@ class App:
         self.style.apply_to_entry(location_en)
         self.style.apply_to_button(location_btn)
         self.style.apply_to_button(create_btn)
+        self.style.apply_to_checkbox(copy_classes_check)
 
         name_lbl.pack(padx=self.pad, pady=self.pad, side="top", expand=True, fill="x")
         name_en.pack(padx=self.pad, pady=self.pad, side="top", expand=True, fill="x")
 
-        create_btn.pack(
+        copy_classes_check.pack(
             padx=self.pad, pady=self.pad, side="bottom", expand=True, fill="x"
         )
-
+        create_btn.pack(padx=self.pad, pady=self.pad, side="bottom", fill="x")
         location_lbl.pack(
             padx=self.pad, pady=self.pad, side="top", expand=True, fill="x"
         )
@@ -156,6 +159,7 @@ class App:
         )
 
         popup.bind("<Return>", lambda event: create())
+        popup.bind("<Escape>", lambda event: popup.destroy())
 
         popup.focus_set()
         popup.mainloop()
@@ -167,9 +171,6 @@ class App:
             project_name = os.path.basename(directory)
             self.win.destroy()
             GameEditor(project_name, directory)
-
-    def open_settings(self):
-        popup = Toplevel(self.win)
 
 
 app = App()

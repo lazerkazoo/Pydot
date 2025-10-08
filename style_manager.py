@@ -9,13 +9,13 @@ class StyleManager:
 
         self.current_theme = self.themes[theme_name]
 
-    def apply_to_window(self, window):
+    def apply_to_window(self, window: Tk):
         window.configure(bg=self.current_theme["bg_primary"])
 
-    def apply_to_frame(self, frame):
+    def apply_to_frame(self, frame: Frame):
         frame.configure(bg=self.current_theme["bg_secondary"])
 
-    def apply_to_button(self, button):
+    def apply_to_button(self, button: Button):
         button.configure(
             bg=self.current_theme["accent_blue"],
             fg=self.current_theme["text_primary"],
@@ -25,12 +25,12 @@ class StyleManager:
             relief="flat",
         )
 
-    def apply_to_label(self, label):
+    def apply_to_label(self, label: Label):
         label.configure(
             bg=self.current_theme["bg_secondary"], fg=self.current_theme["text_primary"]
         )
 
-    def apply_to_entry(self, entry):
+    def apply_to_entry(self, entry: Entry):
         entry.configure(
             bg=self.current_theme["bg_tertiary"],
             fg=self.current_theme["text_primary"],
@@ -41,7 +41,7 @@ class StyleManager:
             relief="solid",
         )
 
-    def apply_to_text(self, text):
+    def apply_to_text(self, text: Text):
         text.configure(
             bg=self.current_theme["bg_primary"],
             fg=self.current_theme["text_primary"],
@@ -50,10 +50,16 @@ class StyleManager:
             selectforeground=self.current_theme["text_primary"],
         )
 
-    def apply_to_listbox(self, listbox):
+    def apply_to_listbox(self, listbox: Listbox):
         listbox.configure(
             bg=self.current_theme["bg_primary"],
             fg=self.current_theme["text_primary"],
             selectbackground=self.current_theme["accent_blue"],
             selectforeground=self.current_theme["text_primary"],
+        )
+
+    def apply_to_checkbox(self, checkbox: Checkbutton):
+        checkbox.configure(
+            bg=self.current_theme["bg_primary"],
+            fg=self.current_theme["text_primary"],
         )
