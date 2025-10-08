@@ -16,35 +16,40 @@ class App:
     def __init__(self):
         self.win = Tk()
         self.win.title("PyDot")
+        self.win.resizable(False, False)
 
         # Initialize style manager for testing
         self.style = StyleManager(theme)
         self.style.apply_to_window(self.win)
 
-        self.win.geometry("720x720")
         self.pad = 2
         pad = self.pad
 
         top_bar = Frame(self.win, height=48)
-        top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
 
         new_project_btn = Button(
             top_bar,
             text="New",
             command=self.create_new_project,
         )
-        new_project_btn.pack(side="left", expand=True, fill="x")
 
         open_project_btn = Button(
             top_bar,
             text="Open",
             command=self.open_existing_project,
         )
-        open_project_btn.pack(side="left", expand=True, fill="x")
+
+        settings_btn = Button(top_bar, text="Settings", command=self.open_settings)
+
+        top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
+        new_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
+        open_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
+        settings_btn.pack(padx=pad, side="right", expand=True, fill="x")
 
         self.style.apply_to_frame(top_bar)
         self.style.apply_to_button(new_project_btn)
         self.style.apply_to_button(open_project_btn)
+        self.style.apply_to_button(settings_btn)
 
         self.win.bind("<Control-n>", lambda event: self.create_new_project())
         self.win.bind("<Control-o>", lambda event: self.open_existing_project())
@@ -88,8 +93,8 @@ class App:
                         "scripts/built_in/default_sprite_manager.py",
                         "scripts/built_in/sprite_manager.py",
                     ),
-                    ("scripts/default_game.py", f"game.py"),
-                    ("scripts/default_main.py", f"main.py"),
+                    ("scripts/default_game.py", "game.py"),
+                    ("scripts/default_main.py", "main.py"),
                 ]
 
                 os.mkdir(directory)
@@ -163,9 +168,8 @@ class App:
             self.win.destroy()
             GameEditor(project_name, directory)
 
+    def open_settings(self):
+        popup = Toplevel(self.win)
 
-def main():
-    app = App()
 
-
-main()
+app = App()

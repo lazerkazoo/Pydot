@@ -1,6 +1,8 @@
 import os
 import subprocess
-import threading
+import re
+import keyword
+import json
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Combobox, Style
@@ -9,7 +11,7 @@ from style_manager import StyleManager
 
 
 class GameEditor:
-    def __init__(self, name: str, directory: str) -> None:
+    def __init__(self, name: str, directory: str):
         self.win = Tk()
         self.win.attributes("-zoomed", True)
         self.win.title(name)
@@ -17,6 +19,12 @@ class GameEditor:
         self.current_file = None
         self.game_process = None
         self.output_thread = None
+
+        # Autocomplete setup
+        self.autocomplete_popup = None
+        self.autocomplete_listbox = None
+        self.autocomplete_suggestions = []
+        self.setup_autocomplete_data()
 
         self.pad = 5
         pad = self.pad
@@ -86,6 +94,9 @@ class GameEditor:
         self.text_editor.bind("{", lambda event: self.complete("{", event))
         self.text_editor.bind('"', lambda event: self.complete('"', event))
         self.text_editor.bind("'", lambda event: self.complete("'", event))
+        self.text_editor.bind("<Control-space>", lambda event: self.show_autocomplete())
+        self.text_editor.bind("<KeyRelease>", self.on_key_release)
+        self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -297,7 +308,7 @@ class GameEditor:
         self.console.insert(END, "Running the Game...")
         subprocess.run(["python", target_file])
 
-    def complete(self, char: str, event) -> None:
+    def complete(self, char: str, event):
         chars = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'"}
         closing_char = chars.get(char, "")
 
@@ -306,6 +317,360 @@ class GameEditor:
             self.text_editor.insert(cursor_pos, char)
             self.text_editor.insert(f"{cursor_pos}+1c", closing_char)
             self.text_editor.mark_set(INSERT, f"{cursor_pos}+1c")
+
+    def setup_autocomplete_data(self):
+        try:
+            with open("autocomplete_data.json", "r") as f:
+                data = json.load(f)
+
+            self.python_keywords = data.get("python_keywords", keyword.kwlist)
+            self.python_builtins = data.get("python_builtins", [])
+            self.pygame_functions = data.get("pygame_functions", [])
+            self.pygame_constants = data.get("pygame_constants", [])
+            self.pygame_modules = data.get("pygame_modules", [])
+            self.common_patterns = data.get("common_patterns", [])
+            self.code_snippets = data.get("code_snippets", {})
+        except FileNotFoundError:
+            # Fallback to basic data if config file doesn't exist
+            self.python_keywords = keyword.kwlist
+            self.python_builtins = [
+                "print",
+                "input",
+                "len",
+                "range",
+                "int",
+                "str",
+                "float",
+                "bool",
+                "list",
+                "dict",
+                "tuple",
+                "set",
+            ]
+            self.pygame_functions = [
+                "pygame.init",
+                "pygame.quit",
+                "pygame.display.set_mode",
+                "pygame.event.get",
+            ]
+            self.pygame_constants = []
+            self.pygame_modules = []
+            self.common_patterns = []
+            self.code_snippets = {}
+
+    def on_key_release(self, event):
+        # Don't show autocomplete for certain keys
+        if event.keysym in [
+            "Up",
+            "Down",
+            "Left",
+            "Right",
+            "Return",
+            "Tab",
+            "BackSpace",
+            "Delete",
+            "Escape",
+            "Control_L",
+            "Control_R",
+            "Alt_L",
+            "Alt_R",
+            "Shift_L",
+            "Shift_R",
+        ]:
             return
 
-        return
+        # Hide existing popup if certain keys are pressed
+        if event.keysym in ["Escape", "Return"]:
+            self.hide_autocomplete()
+            return
+
+        # Get current word being typed
+        current_word = self.get_current_word()
+
+        # Show autocomplete if word is at least 2 characters
+        if len(current_word) >= 2:
+            self.show_autocomplete(current_word)
+        else:
+            self.hide_autocomplete()
+
+    def get_current_word(self):
+        cursor_pos = self.text_editor.index(INSERT)
+        line_start = cursor_pos.split(".")[0] + ".0"
+        line_text = self.text_editor.get(line_start, cursor_pos)
+
+        # Find the start of the current word
+        word_start = len(line_text)
+        for i in range(len(line_text) - 1, -1, -1):
+            if line_text[i].isalnum() or line_text[i] in ["_", "."]:
+                word_start = i
+            else:
+                break
+
+        return line_text[word_start:]
+
+    def get_suggestions(self, partial_word):
+        suggestions = []
+        partial_lower = partial_word.lower()
+
+        # Add Python keywords
+        for kw in self.python_keywords:
+            if kw.startswith(partial_lower):
+                suggestions.append(kw)
+
+        # Add Python built-ins
+        for builtin in self.python_builtins:
+            if builtin.startswith(partial_lower):
+                suggestions.append(builtin)
+
+        # Add pygame functions
+        for func in self.pygame_functions:
+            if func.lower().startswith(partial_lower):
+                suggestions.append(func)
+
+        # Add pygame constants
+        for const in self.pygame_constants:
+            if const.lower().startswith(partial_lower):
+                suggestions.append(const)
+
+        # Add pygame modules
+        for module in self.pygame_modules:
+            if module.lower().startswith(partial_lower):
+                suggestions.append(module)
+
+        # Add common patterns
+        for pattern in self.common_patterns:
+            if pattern.lower().startswith(partial_lower):
+                suggestions.append(pattern)
+
+        # Add context-specific suggestions
+        context_suggestions = self.get_context_suggestions(partial_word)
+        suggestions.extend(context_suggestions)
+
+        # Add code snippets that match
+        for snippet_name in self.code_snippets:
+            if snippet_name.lower().startswith(partial_lower):
+                suggestions.append(f"snippet:{snippet_name}")
+
+        return sorted(list(set(suggestions)))
+
+    def get_context_suggestions(self, partial_word):
+        suggestions = []
+        content = self.text_editor.get(1.0, END)
+
+        # Find class names
+        class_pattern = r"class\s+(\w+)"
+        classes = re.findall(class_pattern, content)
+        for cls in classes:
+            if cls.lower().startswith(partial_word.lower()):
+                suggestions.append(cls)
+
+        # Find function names
+        func_pattern = r"def\s+(\w+)"
+        functions = re.findall(func_pattern, content)
+        for func in functions:
+            if func.lower().startswith(partial_word.lower()):
+                suggestions.append(func)
+
+        # Find variable names (simple heuristic)
+        var_pattern = r"(\w+)\s*="
+        variables = re.findall(var_pattern, content)
+        for var in variables:
+            if (
+                var.lower().startswith(partial_word.lower())
+                and var not in self.python_keywords
+            ):
+                suggestions.append(var)
+
+        return suggestions
+
+    def show_autocomplete(self, partial_word=None):
+        if partial_word is None:
+            partial_word = self.get_current_word()
+
+        if not partial_word:
+            self.hide_autocomplete()
+            return
+
+        suggestions = self.get_suggestions(partial_word)
+
+        if not suggestions:
+            self.hide_autocomplete()
+            return
+
+        self.autocomplete_suggestions = suggestions
+
+        # Create popup if it doesn't exist
+        if not self.autocomplete_popup:
+            self.autocomplete_popup = Toplevel(self.win)
+            self.autocomplete_popup.wm_overrideredirect(True)
+            self.autocomplete_popup.configure(bg="white", relief="solid", bd=1)
+
+            self.autocomplete_listbox = Listbox(
+                self.autocomplete_popup,
+                height=min(8, len(suggestions)),
+                selectmode=SINGLE,
+                exportselection=False,
+            )
+            self.autocomplete_listbox.pack()
+
+            # Bind events
+            self.autocomplete_listbox.bind("<Double-Button-1>", self.insert_suggestion)
+            self.autocomplete_listbox.bind("<Return>", self.insert_suggestion)
+            self.autocomplete_popup.bind("<Escape>", lambda e: self.hide_autocomplete())
+
+            # Handle navigation keys
+            self.text_editor.bind("<Down>", self.navigate_suggestions)
+            self.text_editor.bind("<Up>", self.navigate_suggestions)
+            self.text_editor.bind("<Return>", self.handle_return)
+
+        # Clear and populate listbox
+        if self.autocomplete_listbox:
+            self.autocomplete_listbox.delete(0, END)
+            for suggestion in suggestions:
+                self.autocomplete_listbox.insert(END, suggestion)
+
+            # Select first item
+            if suggestions:
+                self.autocomplete_listbox.selection_set(0)
+
+        # Position popup
+        self.position_autocomplete_popup()
+
+        # Apply styling
+        self.style_manager.apply_to_listbox(self.autocomplete_listbox)
+
+    def position_autocomplete_popup(self):
+        if not self.autocomplete_popup:
+            return
+
+        # Get cursor position in text widget
+        cursor_pos = self.text_editor.index(INSERT)
+        bbox = self.text_editor.bbox(cursor_pos)
+
+        if bbox:
+            x, y, width, height = bbox
+            # Get text widget's position relative to root window
+            text_x = self.text_editor.winfo_rootx()
+            text_y = self.text_editor.winfo_rooty()
+
+            # Position popup below cursor
+            popup_x = text_x + x
+            popup_y = text_y + y + height + 5
+
+            self.autocomplete_popup.geometry(f"+{popup_x}+{popup_y}")
+
+    def navigate_suggestions(self, event):
+        if not self.autocomplete_popup or not self.autocomplete_listbox:
+            return
+
+        current_selection = self.autocomplete_listbox.curselection()
+        if not current_selection:
+            return
+
+        current_index = current_selection[0]
+
+        if event.keysym == "Down":
+            new_index = min(current_index + 1, self.autocomplete_listbox.size() - 1)
+        else:  # Up
+            new_index = max(current_index - 1, 0)
+
+        self.autocomplete_listbox.selection_clear(0, END)
+        self.autocomplete_listbox.selection_set(new_index)
+        self.autocomplete_listbox.see(new_index)
+
+        return "break"  # Prevent default behavior
+
+    def handle_return(self, event):
+        if self.autocomplete_popup and self.autocomplete_popup.winfo_viewable():
+            self.insert_suggestion(event)
+            return "break"
+        return None
+
+    def insert_suggestion(self, event):
+        if not self.autocomplete_listbox:
+            return
+
+        selection = self.autocomplete_listbox.curselection()
+        if not selection:
+            return
+
+        suggestion = self.autocomplete_listbox.get(selection[0])
+
+        # Get current word to replace
+        current_word = self.get_current_word()
+
+        # Calculate position to replace
+        cursor_pos = self.text_editor.index(INSERT)
+        word_start_pos = f"{cursor_pos.split('.')[0]}.{int(cursor_pos.split('.')[1]) - len(current_word)}"
+
+        # Handle code snippets
+        if suggestion.startswith("snippet:"):
+            snippet_name = suggestion[8:]  # Remove "snippet:" prefix
+            if snippet_name in self.code_snippets:
+                snippet_code = self.code_snippets[snippet_name]
+                # Replace current word with snippet
+                self.text_editor.delete(word_start_pos, cursor_pos)
+                self.text_editor.insert(word_start_pos, snippet_code)
+        else:
+            # Regular suggestion
+            self.text_editor.delete(word_start_pos, cursor_pos)
+            self.text_editor.insert(word_start_pos, suggestion)
+
+        self.hide_autocomplete()
+
+    def hide_autocomplete(self):
+        if self.autocomplete_popup:
+            self.autocomplete_popup.destroy()
+            self.autocomplete_popup = None
+            self.autocomplete_listbox = None
+
+        # Remove navigation bindings
+        self.text_editor.bind("<Down>", "")
+        self.text_editor.bind("<Up>", "")
+        self.text_editor.bind("<Return>", "")
+
+    def show_snippet_menu(self):
+        if not self.code_snippets:
+            return
+
+        snippet_popup = Toplevel(self.win)
+        snippet_popup.title("Code Snippets")
+        snippet_popup.geometry("400x300")
+
+        # Create listbox with snippets
+        snippet_listbox = Listbox(snippet_popup, selectmode=SINGLE)
+        snippet_listbox.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for snippet_name in self.code_snippets.keys():
+            snippet_listbox.insert(END, snippet_name)
+
+        def insert_selected_snippet():
+            selection = snippet_listbox.curselection()
+            if selection:
+                snippet_name = snippet_listbox.get(selection[0])
+                snippet_code = self.code_snippets[snippet_name]
+
+                # Insert at current cursor position
+                cursor_pos = self.text_editor.index(INSERT)
+                self.text_editor.insert(cursor_pos, snippet_code)
+                snippet_popup.destroy()
+
+        # Add insert button
+        insert_btn = Button(
+            snippet_popup, text="Insert", command=insert_selected_snippet
+        )
+        insert_btn.pack(pady=5)
+
+        # Bind double-click and Enter
+        snippet_listbox.bind("<Double-Button-1>", lambda e: insert_selected_snippet())
+        snippet_listbox.bind("<Return>", lambda e: insert_selected_snippet())
+
+        # Apply styling
+        self.style_manager.apply_to_window(snippet_popup)
+        self.style_manager.apply_to_listbox(snippet_listbox)
+        self.style_manager.apply_to_button(insert_btn)
+
+        # Focus and center
+        snippet_popup.focus_set()
+        snippet_popup.transient(self.win)
+        snippet_popup.grab_set()
