@@ -351,9 +351,9 @@ class {class_name}:
 
             self.python_keywords = data.get("python_keywords", kwlist)
             self.python_builtins = data.get("python_builtins", [])
-            self.pygame_functions = data.get("pygame_functions", [])
-            self.pygame_constants = data.get("pygame_constants", [])
-            self.pygame_modules = data.get("pygame_modules", [])
+            self.pydot_functions = data.get("pydot_functions", [])
+            self.pydot_constants = data.get("pydot_constants", [])
+            self.pydot_modules = data.get("pydot_modules", [])
             self.common_patterns = data.get("common_patterns", [])
             self.code_snippets = data.get("code_snippets", {})
         except FileNotFoundError:
@@ -373,16 +373,60 @@ class {class_name}:
                 "tuple",
                 "set",
             ]
-            self.pygame_functions = [
+            self.pydot_functions = [
                 "pygame.init",
                 "pygame.quit",
                 "pygame.display.set_mode",
                 "pygame.event.get",
             ]
-            self.pygame_constants = []
-            self.pygame_modules = []
+            self.pydot_constants = []
+            self.pydot_modules = []
             self.common_patterns = []
             self.code_snippets = {}
+
+    def hide_autocomplete(self, event=None):
+        if self.autocomplete_popup:
+            self.autocomplete_popup.destroy()
+            self.autocomplete_popup = None
+            self.autocomplete_listbox = None
+
+    def insert_suggestion(self, event=None):
+        if not self.autocomplete_listbox:
+            return "break"
+
+        # Get the selected item from the listbox
+        selection = self.autocomplete_listbox.curselection()
+        if not selection:
+            return "break"
+
+        # Get the selected suggestion
+        suggestion = self.autocomplete_suggestions[selection[0]]
+
+        # Get the current cursor position and line content
+        cursor_pos = self.text_editor.index(INSERT)
+        line_start = self.text_editor.index(f"{cursor_pos} linestart")
+        line_text = self.text_editor.get(line_start, cursor_pos)
+
+        # Find the start of the current word
+        word_start = cursor_pos
+        while (
+            word_start > line_start
+            and self.text_editor.get(f"{word_start}-1c", word_start).isalnum()
+            or self.text_editor.get(f"{word_start}-1c", word_start) == "."
+        ):
+            word_start = f"{word_start}-1c"
+
+        # Delete the partial word and insert the suggestion
+        self.text_editor.delete(word_start, cursor_pos)
+        self.text_editor.insert(word_start, suggestion)
+
+        # Move cursor to the end of the inserted suggestion
+        self.text_editor.mark_set(INSERT, f"{word_start}+{len(suggestion)}c")
+
+        # Hide the autocomplete popup
+        self.hide_autocomplete()
+
+        return "break"
 
     def on_key_release(self, event):
         # Hide autocomplete for Escape
@@ -418,6 +462,15 @@ class {class_name}:
 
         self.highlighter.highlight()
 
+    def handle_return(self, event=None):
+        if self.autocomplete_suggestions:
+            self.insert_suggestion()
+            self.hide_autocomplete()
+            return "break"
+        else:
+            self.auto_indentation()
+            return "continue"
+
     def get_current_word(self):
         cursor_pos = self.text_editor.index(INSERT)
         line_start = cursor_pos.split(".")[0] + ".0"
@@ -448,17 +501,17 @@ class {class_name}:
                 suggestions.append(builtin)
 
         # Add pygame functions
-        for func in self.pygame_functions:
+        for func in self.pydot_functions:
             if func.lower().startswith(partial_lower):
                 suggestions.append(func)
 
         # Add pygame constants
-        for const in self.pygame_constants:
+        for const in self.pydot_constants:
             if const.lower().startswith(partial_lower):
                 suggestions.append(const)
 
         # Add pygame modules
-        for module in self.pygame_modules:
+        for module in self.pydot_modules:
             if module.lower().startswith(partial_lower):
                 suggestions.append(module)
 
