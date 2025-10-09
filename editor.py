@@ -95,7 +95,6 @@ class GameEditor:
         self.text_editor.bind("'", lambda event: self.close("'", event))
         self.text_editor.bind("<Control-space>", lambda event: self.show_autocomplete())
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
-        self.text_editor.bind("<KeyRelease>", self.highlighter.highlight)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
         self.text_editor.bind("<Return>", self.auto_indentation)
 
@@ -386,6 +385,8 @@ class GameEditor:
             self.show_autocomplete(current_word)
         else:
             self.hide_autocomplete()
+
+        self.highlighter.highlight()
 
     def get_current_word(self):
         cursor_pos = self.text_editor.index(INSERT)

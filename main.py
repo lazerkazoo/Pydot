@@ -17,21 +17,21 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 
 # Project directory
-global start_in
-start_in = os.path.expanduser("~")
+global start_dir
+start_dir = os.path.expanduser("~")
 if os.name == "nt":  # Windows
-    start_in = os.path.join(start_in, "Documents")
+    start_dir = os.path.join(start_dir, "Documents")
 else:  # Linux, macOS, (unix).
-    start_in = os.path.join(start_in, "Projects")
+    start_dir = os.path.join(start_dir, "Projects")
 
-if not os.path.exists(start_in):
-    os.makedirs(start_in, exist_ok=True)
-start_in = os.path.join(start_in, "PyDot")
-if not os.path.exists(start_in):
-    os.makedirs(start_in, exist_ok=True)
+if not os.path.exists(start_dir):
+    os.makedirs(start_dir, exist_ok=True)
+start_dir = os.path.join(start_dir, "PyDot")
+if not os.path.exists(start_dir):
+    os.makedirs(start_dir, exist_ok=True)
 
 global directory
-directory = start_in
+directory = start_dir
 
 
 class App:
@@ -81,9 +81,9 @@ class App:
             files_to_copy = data["files_to_copy"]
 
         def browse():
-            global directory, start_in
+            global directory, start_dir
             popup.withdraw()
-            directory = askdirectory(initialdir=start_in)
+            directory = askdirectory(initialdir=start_dir)
             popup.deiconify()
             location_en.delete(0, END)
             location_en.insert(0, f"{directory}/")
@@ -94,8 +94,6 @@ class App:
             global directory
             directory += f"/{name_en.get()}"
             if directory != "":
-                print(copy_classes.get())
-
                 os.mkdir(directory)
 
                 if copy_classes.get():
@@ -186,28 +184,24 @@ class App:
         popup.mainloop()
 
     def open_existing_project(self):
-        global start_in, directory
-        directory = askdirectory(title="Select Project Directory", initialdir=start_in)
+        global start_dir, directory
+        directory = askdirectory(title="Select Project Directory", initialdir=start_dir)
         if directory:
-            # Get project name from directory path
             project_name = os.path.basename(directory)
             self.win.destroy()
             GameEditor(project_name, directory)
 
 
 if __name__ == "__main__":
-    # Create config directory if it doesn't exist
     if not os.path.exists(CONFIG_DIR):
         os.makedirs(CONFIG_DIR, exist_ok=True)
 
-    # Copy themes.json to config directory if it doesn't exist
     if not os.path.exists(THEMES_FILE):
         with open("themes.json", "r") as src:
             themes_data = json.load(src)
         with open(THEMES_FILE, "w") as dst:
             json.dump(themes_data, dst, indent=2)
 
-    # Run initial setup if config.json doesn't exist
     if not os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "w") as f:
             json.dump({"theme": "vs_code_dark"}, f, indent=4)
