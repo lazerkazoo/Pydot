@@ -3,10 +3,14 @@ from pygame.surface import Surface
 
 
 class Sprite:
-    def __init__(self, image: str, x: int, y: int):
+    def __init__(self, image: str, x: int, y: int, scale: int):
         self.x = x
         self.y = y
         self.image = pydot.image.load(image).convert_alpha()
+        self.image = pydot.transform.scale(
+            self.image,
+            (self.image.get_width() * scale, self.image.get_height() * scale),
+        ).convert_alpha()
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def update(self):
@@ -17,18 +21,30 @@ class Sprite:
 
 
 class SpriteFromSheet:
-    def __init__(self, sheet: str, x: int, y: int, width: int, height: int):
+    def __init__(self, sheet: str, x: int, y: int, width: int, height: int, scale: int):
+        # Load the sprite sheet
         self.sheet_image = pydot.image.load(sheet).convert_alpha()
 
+        # Store the original dimensions
+        self.width = width
+        self.height = height
+        self.scale = scale
         self.x = x
         self.y = y
 
-        self.width = width
-        self.height = height
-
+        # Create a surface for the sprite at its original size
         self.surface = pydot.Surface((width, height), pydot.SRCALPHA)
-        self.rect = self.surface.get_rect(center=(x, y))
+
+        # Blit the specific sprite from the sheet (before scaling)
         self.surface.blit(self.sheet_image, (0, 0), (0, 0, width, height))
+
+        # Scale the surface after blitting
+        self.surface = pydot.transform.scale(
+            self.surface, (width * scale, height * scale)
+        )
+
+        # Get the rect after scaling
+        self.rect = self.surface.get_rect(center=(x, y))
 
     def update(self):
         self.rect.center = (self.x, self.y)
@@ -47,6 +63,7 @@ class SheetAnimManager:
         height: int,
         frame_rate: int,
         anims: list[tuple[str, int]],
+        scale: int,
     ) -> None:
         self.sheet = sheet
 
@@ -71,7 +88,11 @@ class SheetAnimManager:
                     f"{anim_name}_{frame_idx}.png"
                 ).convert_alpha()
 
-        self.surface = pydot.Surface((width, height), pydot.SRCALPHA)
+        self.surface = pydot.Surface((width, height), pydot.SRCALPHA).convert()
+        self.surface = pydot.transform.scale(
+            self.surface,
+            (self.surface.get_width() * scale, self.surface.get_height() * scale),
+        ).convert_alpha()
         self.rect = self.surface.get_rect(center=(x, y))
 
     def update(self):
@@ -97,3 +118,4 @@ class SheetAnimManager:
                 (0, 0, self.width, self.height),
             )
         surface.blit(self.surface, self.rect)
+

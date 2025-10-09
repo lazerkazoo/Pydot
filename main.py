@@ -7,9 +7,31 @@ from tkinter.filedialog import askdirectory
 from editor import GameEditor
 from style_manager import StyleManager
 
-with open("themes.json") as f:
-    theme = json.load(f)["selected"]
-    f.close()
+# Configuration paths
+if os.name == "nt":  # Windows
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "PyDot")
+else:  # Linux, macOS, (unix).
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "PyDot")
+
+CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
+
+# Project directory
+global start_in
+start_in = os.path.expanduser("~")
+if os.name == "nt":  # Windows
+    start_in = os.path.join(start_in, "Documents")
+else:  # Linux, macOS, (unix).
+    start_in = os.path.join(start_in, "Projects")
+
+if not os.path.exists(start_in):
+    os.makedirs(start_in, exist_ok=True)
+start_in = os.path.join(start_in, "PyDot")
+if not os.path.exists(start_in):
+    os.makedirs(start_in, exist_ok=True)
+
+global directory
+directory = start_in
 
 
 class App:
@@ -19,7 +41,7 @@ class App:
         self.win.resizable(False, False)
 
         # Initialize style manager for testing
-        self.style = StyleManager(theme)
+        self.style = StyleManager()
         self.style.apply_to_window(self.win)
 
         self.pad = 2
@@ -57,13 +79,11 @@ class App:
             data = json.load(f)
             dirs_to_make = data["dirs_to_make"]
             files_to_copy = data["files_to_copy"]
-        global directory
-        directory = ""
 
         def browse():
-            global directory
+            global directory, start_in
             popup.withdraw()
-            directory = askdirectory()
+            directory = askdirectory(initialdir=start_in)
             popup.deiconify()
             location_en.delete(0, END)
             location_en.insert(0, f"{directory}/")
@@ -123,6 +143,7 @@ class App:
 
         location_lbl = Label(popup, text="Location:")
         location_en = Entry(popup)
+        location_en.insert(0, directory)
         location_btn = Button(popup, text="Browse", command=browse)
 
         create_btn = Button(popup, text="Create", command=create)
@@ -165,7 +186,8 @@ class App:
         popup.mainloop()
 
     def open_existing_project(self):
-        directory = askdirectory(title="Select Project Directory")
+        global start_in, directory
+        directory = askdirectory(title="Select Project Directory", initialdir=start_in)
         if directory:
             # Get project name from directory path
             project_name = os.path.basename(directory)
@@ -173,4 +195,24 @@ class App:
             GameEditor(project_name, directory)
 
 
-app = App()
+if __name__ == "__main__":
+    # Create config directory if it doesn't exist
+    if not os.path.exists(CONFIG_DIR):
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+
+    # Copy themes.json to config directory if it doesn't exist
+    if not os.path.exists(THEMES_FILE):
+        with open("themes.json", "r") as src:
+            themes_data = json.load(src)
+        with open(THEMES_FILE, "w") as dst:
+            json.dump(themes_data, dst, indent=2)
+
+    # Run initial setup if config.json doesn't exist
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "w") as f:
+            json.dump({"theme": "vs_code_dark"}, f, indent=4)
+        from init_setup import InitialSetup
+
+        InitialSetup()
+
+    app = App()

@@ -3,12 +3,12 @@ import os
 import re
 import subprocess
 from keyword import kwlist
-from time import sleep
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Combobox, Style
 
 from style_manager import StyleManager
+from syntax_highlighter import SyntaxHighlighter
 
 
 class GameEditor:
@@ -57,6 +57,12 @@ class GameEditor:
         self.style_manager.apply_to_button(start_btn)
         self.style_manager.apply_to_frame(text_frame)
         self.style_manager.apply_to_text(self.text_editor)
+
+        # Syntax Highlighting
+        self.highlighter = SyntaxHighlighter(
+            self.text_editor, "python", self.style_manager.current_theme
+        )
+
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
@@ -89,6 +95,7 @@ class GameEditor:
         self.text_editor.bind("'", lambda event: self.close("'", event))
         self.text_editor.bind("<Control-space>", lambda event: self.show_autocomplete())
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
+        self.text_editor.bind("<KeyRelease>", self.highlighter.highlight)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
         self.text_editor.bind("<Return>", self.auto_indentation)
 
@@ -114,8 +121,10 @@ class GameEditor:
 
         with open(file_path, "r") as f:
             self.text_editor.delete(1.0, END)
-            self.text_editor.insert(1.0, f.read())
+            content = f.read()
+            self.text_editor.insert(1.0, content)
             self.current_file = file_path
+            self.highlighter.highlight()
 
     def force_open_file(self, file: str):
         if not self.directory:
@@ -123,8 +132,10 @@ class GameEditor:
 
         with open(f"{self.directory}/{file}", "r") as f:
             self.text_editor.delete(1.0, END)
-            self.text_editor.insert(1.0, f.read())
+            content = f.read()
+            self.text_editor.insert(1.0, content)
             self.current_file = f"{self.directory}/{file}"
+            self.highlighter.highlight()
 
     def save_file(self):
         text = self.text_editor.get(1.0, END)

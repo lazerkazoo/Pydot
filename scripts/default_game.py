@@ -22,7 +22,7 @@ def main():
 
         screen.fill("purple")
 
-        m.main()
+        m.main(screen)
 
         pydot.display.flip()
         clock.tick(m.fps)

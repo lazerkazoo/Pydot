@@ -5,6 +5,6 @@ resolution = (1280, 720)  # is overiden by fullscreen
 fps = 60
 
 
-def main():
+def main(screen: pydot.Surface):
     # put stuff here
     pass

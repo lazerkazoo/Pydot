@@ -11,7 +11,20 @@
     "accent_green": "#16825d",
     "accent_orange": "#ff8c00",
     "accent_red": "#f44747",
-    "border": "#454545"
+    "border": "#454545",
+    "syntax": {
+      "keyword": "#569cd6",
+      "builtin": "#4ec9b0",
+      "string": "#ce9178",
+      "number": "#b5cea8",
+      "comment": "#6a9955",
+      "function": "#dcdcaa",
+      "class": "#4ec9b0",
+      "operator": "#d4d4d4",
+      "constant": "#4fc1ff",
+      "decorator": "#dcdcaa",
+      "variable": "#9cdcfe"
+    }
   },
   "one_dark": {
     "name": "One Dark",
@@ -25,7 +38,20 @@
     "accent_green": "#98c379",
     "accent_orange": "#e5c07b",
     "accent_red": "#e06c75",
-    "border": "#4b5263"
+    "border": "#4b5263",
+    "syntax": {
+      "keyword": "#c678dd",
+      "builtin": "#56b6c2",
+      "string": "#98c379",
+      "number": "#d19a66",
+      "comment": "#5c6370",
+      "function": "#61afef",
+      "class": "#e5c07b",
+      "operator": "#56b6c2",
+      "constant": "#d19a66",
+      "decorator": "#61afef",
+      "variable": "#e06c75"
+    }
   },
   "dracula": {
     "name": "Dracula",
@@ -39,7 +65,20 @@
     "accent_green": "#50fa7b",
     "accent_orange": "#ffb86c",
     "accent_red": "#ff5555",
-    "border": "#6272a4"
+    "border": "#6272a4",
+    "syntax": {
+      "keyword": "#ff79c6",
+      "builtin": "#8be9fd",
+      "string": "#f1fa8c",
+      "number": "#bd93f9",
+      "comment": "#6272a4",
+      "function": "#50fa7b",
+      "class": "#8be9fd",
+      "operator": "#ff79c6",
+      "constant": "#bd93f9",
+      "decorator": "#50fa7b",
+      "variable": "#f8f8f2"
+    }
   },
   "monokai": {
     "name": "Monokai",
@@ -53,7 +92,20 @@
     "accent_green": "#a6e22e",
     "accent_orange": "#fd971f",
     "accent_red": "#f92672",
-    "border": "#75715e"
+    "border": "#75715e",
+    "syntax": {
+      "keyword": "#f92672",
+      "builtin": "#66d9ef",
+      "string": "#e6db74",
+      "number": "#ae81ff",
+      "comment": "#75715e",
+      "function": "#a6e22e",
+      "class": "#a6e22e",
+      "operator": "#f92672",
+      "constant": "#ae81ff",
+      "decorator": "#a6e22e",
+      "variable": "#f8f8f2"
+    }
   },
   "github_dark": {
     "name": "GitHub Dark",
@@ -67,7 +119,20 @@
     "accent_green": "#3fb950",
     "accent_orange": "#d29922",
     "accent_red": "#f85149",
-    "border": "#30363d"
+    "border": "#30363d",
+    "syntax": {
+      "keyword": "#ff7b72",
+      "builtin": "#79c0ff",
+      "string": "#a5d6ff",
+      "number": "#79c0ff",
+      "comment": "#8b949e",
+      "function": "#d2a8ff",
+      "class": "#ffa657",
+      "operator": "#ff7b72",
+      "constant": "#79c0ff",
+      "decorator": "#d2a8ff",
+      "variable": "#ffa657"
+    }
   },
   "tokyo_night": {
     "name": "Tokyo Night",
@@ -81,7 +146,20 @@
     "accent_green": "#9ece6a",
     "accent_orange": "#e0af68",
     "accent_red": "#f7768e",
-    "border": "#414868"
+    "border": "#414868",
+    "syntax": {
+      "keyword": "#bb9af7",
+      "builtin": "#2ac3de",
+      "string": "#9ece6a",
+      "number": "#ff9e64",
+      "comment": "#565f89",
+      "function": "#7aa2f7",
+      "class": "#e0af68",
+      "operator": "#89ddff",
+      "constant": "#ff9e64",
+      "decorator": "#7aa2f7",
+      "variable": "#f7768e"
+    }
   },
-  "selected":"vs_code_dark"
+  "selected": "github_dark"
 }
