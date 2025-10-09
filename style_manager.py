@@ -5,9 +5,9 @@ from tkinter.ttk import Combobox, Style
 
 # Configuration paths
 if os.name == "nt":  # Windows
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "pydot")
 else:  # Linux, macOS, etc.
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")

@@ -9,20 +9,16 @@ from style_manager import StyleManager
 
 # Configuration paths
 if os.name == "nt":  # Windows
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "pydot")
 else:  # Linux, macOS, (unix).
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 
 # Project directory
 global start_dir
-start_dir = os.path.expanduser("~")
-if os.name == "nt":  # Windows
-    start_dir = os.path.join(start_dir, "Documents")
-else:  # Linux, macOS, (unix).
-    start_dir = os.path.join(start_dir, "Projects")
+start_dir = os.path.expanduser("~/Documents")
 
 if not os.path.exists(start_dir):
     os.makedirs(start_dir, exist_ok=True)
@@ -148,7 +144,9 @@ class App:
 
         copy_classes = BooleanVar(value=True)
         copy_classes_check = Checkbutton(
-            popup, text="Copy Pydot Specific Classes?", variable=copy_classes
+            popup,
+            text="Copy Pydot Specific Classes (recommended)?",
+            variable=copy_classes,
         )
 
         self.style.apply_to_window(popup)

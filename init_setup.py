@@ -6,9 +6,9 @@ from style_manager import StyleManager
 
 # Configuration paths
 if os.name == "nt":  # Windows
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "pydot")
 else:  # Linux, macOS, etc.
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "PyDot")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
@@ -26,7 +26,7 @@ class InitialSetup:
         self.steps = [
             {
                 "title": "Welcome to PyDot",
-                "description": "PyDot is a game development framework for Python.",
+                "description": "PyDot is a GUI for pygame.",
             },
             {
                 "title": "Select Theme",
@@ -123,9 +123,5 @@ class InitialSetup:
         config["theme"] = theme_key
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f, indent=4)
-        
+
         self.popup.destroy()
-
-
-if __name__ == "__main__":
-    setup = InitialSetup()

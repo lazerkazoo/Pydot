@@ -97,6 +97,7 @@ class GameEditor:
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
         self.text_editor.bind("<Return>", self.auto_indentation)
+        self.text_editor.bind("<Tab>", self.insert_spaces)
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -172,6 +173,7 @@ class GameEditor:
         # Define types dictionary at the method level for proper scope
         types = {
             "Python": [".py", "/scripts/custom/"],
+            "Pydot Class": [".py", "/scripts/custom/"],
             "Json": [".json", "/data/"],
             "Any": ["", "/scripts/"],
         }
@@ -196,23 +198,50 @@ class GameEditor:
 
             main_file_path = f"{self.directory}/main.py"
 
-            # Create the new class file
+            if os.path.exists(f"{self.directory}/scripts/built_in"):
+                file_content = f"""import pygame as pydot                            
+from scripts.built_in.text import Text
+from scripts.built_in.button import Button
+from scripts.built_in.sprite_manager import Sprite
+from scripts.built_in.sprite_manager import SheetAnimManager
+from scripts.built_in.sprite_manager import SpriteFromSheet
+
+
+class {class_name}:
+    def __init__(self):
+        # runs when the class is created
+        pass
+
+    def run(self):
+        # always runs
+        pass"""
+            else:
+                file_content = f"""import pygame as pydot
+
+
+class {class_name}:
+    def __init__(self):
+        # runs when the class is created
+        pass
+
+    def run(self):
+        # always runs
+        pass"""
+
             with open(new_file_path, "w") as f:
                 if selected_type == "Python":
-                    f.write(
-                        f"import pygame as pydot\n\nclass {class_name}:\n    def __init__(self):\n        # put stuff here\n        pass"
-                    )
+                    f.write(f"import pygame as pydot")
+                elif selected_type == "Pydot Class":
+                    f.write(file_content)
                 elif selected_type == "Json":
                     f.write("{}")
                 else:
-                    f.write("")  # Empty file for "Any" type
+                    f.write("")
 
-            # Update main.py to import the new class (only for Python files)
-            if selected_type == "Python" and os.path.exists(main_file_path):
+            if selected_type == "Pydot Class" and os.path.exists(main_file_path):
                 with open(main_file_path, "r") as r:
                     content = r.read()
 
-                # Add import line at the beginning
                 import_line = f"from scripts.custom.{file} import {class_name}\n"
                 if import_line not in content:
                     updated_content = import_line + content
@@ -220,7 +249,6 @@ class GameEditor:
                     with open(main_file_path, "w") as w:
                         w.write(updated_content)
 
-            # Load the new file into the editor
             with open(new_file_path, "r") as f:
                 self.text_editor.delete(1.0, END)
                 self.text_editor.insert(1.0, f.read())
@@ -236,10 +264,9 @@ class GameEditor:
             popup = Toplevel(self.win)
             popup.title("Create New File")
 
-            type_var = StringVar()
-            type_cb = Combobox(popup, textvariable=type_var)
-            type_var.set("Python")
-            type_cb["values"] = ["Python", "Json", "Any"]
+            type_cb = Combobox(popup)
+            type_cb.set("Pydot Class")
+            type_cb["values"] = ["Pydot Class", "Python", "Json", "Any"]
             type_cb["state"] = "readonly"
 
             name_lbl = Label(popup, text="File Name:")
@@ -254,7 +281,7 @@ class GameEditor:
 
             cancel_btn = Button(popup, text="Cancel", command=popup.destroy)
 
-            # Bind Enter key to create
+            # Bindings
             popup.bind("<Return>", lambda event: on_create())
             name_en.bind("<Return>", lambda event: on_create())
 
@@ -263,6 +290,7 @@ class GameEditor:
             self.style_manager.apply_to_entry(name_en)
             self.style_manager.apply_to_button(create_btn)
             self.style_manager.apply_to_button(cancel_btn)
+            self.style_manager.apply_to_combobox(type_cb)
 
             type_cb.pack(pady=pad, fill="x")
             name_lbl.pack(pady=pad)
@@ -291,6 +319,11 @@ class GameEditor:
             save.pack(expand=True, fill="x", padx=pad, pady=pad)
             ok.pack(expand=True, fill="x", padx=pad, pady=pad)
             cancel.pack(expand=True, fill="x", padx=pad, pady=pad)
+
+            popup.bind(
+                "<Return>",
+                lambda event: [self.save_file(), popup.destroy(), create_new()],
+            )
 
             popup.mainloop()
 
@@ -352,7 +385,12 @@ class GameEditor:
             self.code_snippets = {}
 
     def on_key_release(self, event):
-        # Don't show autocomplete for certain keys
+        # Hide autocomplete for Escape
+        if event.keysym == "Escape":
+            self.hide_autocomplete()
+            return
+
+        # Don't show autocomplete for navigation/control keys
         if event.keysym in [
             "Up",
             "Down",
@@ -360,9 +398,6 @@ class GameEditor:
             "Right",
             "Return",
             "Tab",
-            "BackSpace",
-            "Delete",
-            "Escape",
             "Control_L",
             "Control_R",
             "Alt_L",
@@ -370,11 +405,6 @@ class GameEditor:
             "Shift_L",
             "Shift_R",
         ]:
-            return
-
-        # Hide existing popup if certain keys are pressed
-        if event.keysym in ["Escape", "Return"]:
-            self.hide_autocomplete()
             return
 
         # Get current word being typed
@@ -511,7 +541,7 @@ class GameEditor:
             # Bind events
             self.autocomplete_listbox.bind("<Double-Button-1>", self.insert_suggestion)
             self.autocomplete_listbox.bind("<Return>", self.insert_suggestion)
-            self.autocomplete_popup.bind("<Escape>", lambda e: self.hide_autocomplete())
+            self.autocomplete_popup.bind("<Escape>", self.hide_autocomplete)
 
             # Handle navigation keys
             self.text_editor.bind("<Down>", self.navigate_suggestions)
@@ -573,56 +603,11 @@ class GameEditor:
         self.autocomplete_listbox.selection_set(new_index)
         self.autocomplete_listbox.see(new_index)
 
-        return "break"  # Prevent default behavior
+        return "break"  # Prevent default newline behavior
 
-    def handle_return(self, event):
-        if self.autocomplete_popup and self.autocomplete_popup.winfo_viewable():
-            self.insert_suggestion(event)
-            return "break"
-        return None
-
-    def insert_suggestion(self, event):
-        if not self.autocomplete_listbox:
-            return
-
-        selection = self.autocomplete_listbox.curselection()
-        if not selection:
-            return
-
-        suggestion = self.autocomplete_listbox.get(selection[0])
-
-        # Get current word to replace
-        current_word = self.get_current_word()
-
-        # Calculate position to replace
-        cursor_pos = self.text_editor.index(INSERT)
-        word_start_pos = f"{cursor_pos.split('.')[0]}.{int(cursor_pos.split('.')[1]) - len(current_word)}"
-
-        # Handle code snippets
-        if suggestion.startswith("snippet:"):
-            snippet_name = suggestion[8:]  # Remove "snippet:" prefix
-            if snippet_name in self.code_snippets:
-                snippet_code = self.code_snippets[snippet_name]
-                # Replace current word with snippet
-                self.text_editor.delete(word_start_pos, cursor_pos)
-                self.text_editor.insert(word_start_pos, snippet_code)
-        else:
-            # Regular suggestion
-            self.text_editor.delete(word_start_pos, cursor_pos)
-            self.text_editor.insert(word_start_pos, suggestion)
-
-        self.hide_autocomplete()
-
-    def hide_autocomplete(self):
-        if self.autocomplete_popup:
-            self.autocomplete_popup.destroy()
-            self.autocomplete_popup = None
-            self.autocomplete_listbox = None
-
-        # Remove navigation bindings
-        self.text_editor.bind("<Down>", "")
-        self.text_editor.bind("<Up>", "")
-        self.text_editor.bind("<Return>", "")
+    def insert_spaces(self, event):
+        self.text_editor.insert(INSERT, "    ")
+        return "break"  # Prevent default tab behavior
 
     def show_snippet_menu(self):
         if not self.code_snippets:
@@ -656,7 +641,7 @@ class GameEditor:
         )
         insert_btn.pack(pady=5)
 
-        # Bind double-click and Enter
+        # Bindings
         snippet_listbox.bind("<Double-Button-1>", lambda e: insert_selected_snippet())
         snippet_listbox.bind("<Return>", lambda e: insert_selected_snippet())
         snippet_listbox.bind("<Tab>", lambda e: insert_selected_snippet())
@@ -672,31 +657,29 @@ class GameEditor:
         snippet_popup.grab_set()
 
     def auto_indentation(self, event):
-        # Get current cursor position
         current_pos = self.text_editor.index(INSERT)
-
-        # Get the current line content to determine indentation
         current_line = self.text_editor.get(
             f"{current_pos.split('.')[0]}.0", current_pos
         )
 
-        # Calculate current indentation level
         indent_level = 0
+        spaces_count = 0
+
         for char in current_line:
             if char == " ":
-                indent_level += 1
+                spaces_count += 1
+                if spaces_count % 4 == 0:
+                    indent_level += 1
             elif char == "\t":
-                indent_level += 4  # Treat tab as 4 spaces
+                indent_level += 1
+                spaces_count = 0
             else:
                 break
 
-        # Check if current line ends with ':' to increase indentation
         stripped_line = current_line.strip()
         if stripped_line.endswith(":"):
-            indent_level += 4
-
-        # Insert newline with appropriate indentation
-        indent_str = " " * indent_level
+            indent_level += 1
+        indent_str = "    " * indent_level
         self.text_editor.insert(INSERT, f"\n{indent_str}")
 
-        return "break"  # Prevent default newline behavior
+        return "break"
