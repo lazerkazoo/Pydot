@@ -120,7 +120,7 @@ class InitialSetup:
             json.dump(config, f)
             f.close()
         with open(RECENT_PROJECTS_FILE, "w") as f:
-            json.dump([], f)
+            json.dump({}, f)
             f.close()
         self.popup.destroy()
         subprocess.run(["python", "main.py"])

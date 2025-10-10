@@ -94,7 +94,7 @@ class App:
         self.win.mainloop()
 
     def create_new_project(self):
-        with open("stuff_to_make.json") as f:
+        with open(os.path.join("data", "stuff_to_make.json")) as f:
             data = json.load(f)
             dirs_to_make = data["dirs_to_make"]
             files_to_copy = data["files_to_copy"]
@@ -139,7 +139,7 @@ class App:
 
                 name = name_en.get()
                 self.win.destroy()
-                self.recent_projects.append(directory)
+                self.recent_projects[directory] = name
                 with open(RECENT_PROJECTS_FILE, "w") as f:
                     json.dump(self.recent_projects, f, indent=4)
                     f.close()
@@ -182,7 +182,7 @@ class App:
         self.style.apply_to(location_en)
         self.style.apply_to(location_btn)
         self.style.apply_to(create_btn)
-        self.style.apply_to_checkbox(copy_classes_check)
+        self.style.apply_to(copy_classes_check)
 
         name_lbl.pack(padx=self.pad, pady=self.pad, side="top", expand=True, fill="x")
         name_en.pack(padx=self.pad, pady=self.pad, side="top", expand=True, fill="x")
@@ -210,11 +210,10 @@ class App:
     def open_existing_project(self):
         global start_dir
         directory = askdirectory(title="Select Project Directory", initialdir=start_dir)
-        if directory:
-            project_name = os.path.basename(directory)
-            self.win.destroy()
-            GameEditor(project_name, directory)
-        self.recent_projects.append(directory)
+        project_name = os.path.basename(directory)
+        self.win.destroy()
+        GameEditor(project_name, directory)
+        self.recent_projects[directory] = project_name
         with open(RECENT_PROJECTS_FILE, "w") as f:
             json.dump(self.recent_projects, f, indent=4)
             f.close()
