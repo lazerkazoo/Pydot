@@ -1,28 +1,46 @@
 {
   "dirs_to_make": {
     "no": [
-      "scripts",
-      "scripts/custom",
       "assets",
       "assets/sprites",
       "assets/sfx",
-      "assets/music"
+      "assets/music",
+      "data",
+      "scripts",
+      "scripts/custom"
     ],
-    "yes": ["scripts/built_in"]
+    "yes": [
+      "scripts/built_in"
+    ]
   },
   "files_to_copy": {
     "no": [
-      ["scripts/default_game.py", "game.py"],
-      ["scripts/default_main_without_classes.py", "main.py"]
+      [
+        "scripts/default_game.py",
+        "game.py"
+      ],
+      [
+        "scripts/default_main_without_classes.py",
+        "main.py"
+      ]
     ],
     "yes": [
-      ["scripts/default_main_with_classes.py", "main.py"],
+      [
+        "scripts/default_main_with_classes.py",
+        "main.py"
+      ],
       [
         "scripts/built_in/default_sprite_manager.py",
         "scripts/built_in/sprite_manager.py"
       ],
-      ["scripts/built_in/default_text.py", "scripts/built_in/text.py"],
-      ["scripts/built_in/default_button.py", "scripts/built_in/button.py"]
+      [
+        "scripts/built_in/default_text.py",
+        "scripts/built_in/text.py"
+      ],
+      [
+        "scripts/built_in/default_button.py",
+        "scripts/built_in/button.py"
+      ]
     ]
   }
 }

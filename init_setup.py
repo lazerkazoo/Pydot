@@ -26,7 +26,7 @@ class InitialSetup:
         self.steps = [
             {
                 "title": "Welcome to PyDot",
-                "description": "PyDot is a GUI for pygame.",
+                "description": "Pydot is a simple, user-friendly IDE for creating games with Pygame.",
             },
             {
                 "title": "Select Theme",

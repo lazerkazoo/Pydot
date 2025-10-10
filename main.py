@@ -15,6 +15,7 @@ else:  # Linux, macOS, (unix).
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
+RECENT_PROJECTS_FILE = os.path.join(CONFIG_DIR, "self.recent_projects.json")
 
 # Project directory
 global start_dir
@@ -57,9 +58,23 @@ class App:
             command=self.open_existing_project,
         )
 
+        recent_projects_listbox = Listbox(self.win)
+
+        with open(RECENT_PROJECTS_FILE, "r") as f:
+            self.recent_projects = json.load(f)
+            f.close()
+
+        for num, project in enumerate(reversed(self.recent_projects)):
+            if num > 10:
+                break
+            recent_projects_listbox.insert(END, os.path.basename(project))
+
         top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
         new_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
         open_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
+        recent_projects_listbox.grid(
+            padx=pad, pady=pad, row=1, column=0, columnspan=1, sticky="wens"
+        )
 
         self.style.apply_to_frame(top_bar)
         self.style.apply_to_button(new_project_btn)
@@ -68,6 +83,13 @@ class App:
         self.win.bind("<Control-n>", lambda event: self.create_new_project())
         self.win.bind("<Control-o>", lambda event: self.open_existing_project())
 
+        recent_projects_listbox.bind(
+            "<Double-1>",
+            lambda event: self.force_open_existing_project(
+                recent_projects_listbox.get(recent_projects_listbox.curselection())
+            ),
+        )
+
         self.win.mainloop()
 
     def create_new_project(self):
@@ -75,6 +97,7 @@ class App:
             data = json.load(f)
             dirs_to_make = data["dirs_to_make"]
             files_to_copy = data["files_to_copy"]
+            f.close()
 
         def browse():
             global directory, start_dir
@@ -106,10 +129,8 @@ class App:
                             os.remove(f"{directory}/{file[1]}")
                         shutil.copy(file[0], f"{directory}/{file[1]}")
                 else:
-                    # Create directories from only "no" list
                     for dir in dirs_to_make["no"]:
                         os.mkdir(f"{directory}/{dir}")
-                    # Copy files from only "no" list
                     for file in files_to_copy["no"]:
                         if os.path.exists(f"{directory}/{file[1]}"):
                             os.remove(f"{directory}/{file[1]}")
@@ -117,6 +138,10 @@ class App:
 
                 name = name_en.get()
                 self.win.destroy()
+                self.recent_projects.append(directory)
+                with open(RECENT_PROJECTS_FILE, "w") as f:
+                    json.dump(self.recent_projects, f, indent=4)
+                    f.close()
                 GameEditor(name, directory)
             else:
                 err_popup = Toplevel(popup)
@@ -182,12 +207,24 @@ class App:
         popup.mainloop()
 
     def open_existing_project(self):
-        global start_dir, directory
+        global start_dir
         directory = askdirectory(title="Select Project Directory", initialdir=start_dir)
         if directory:
             project_name = os.path.basename(directory)
             self.win.destroy()
             GameEditor(project_name, directory)
+        self.recent_projects.append(directory)
+        with open(RECENT_PROJECTS_FILE, "w") as f:
+            json.dump(self.recent_projects, f, indent=4)
+            f.close()
+
+    def force_open_existing_project(self, name: str):
+        self.win.destroy()
+        GameEditor(name, os.path.join(start_dir, name))
+        self.recent_projects.append(os.path.join(start_dir, name))
+        with open(RECENT_PROJECTS_FILE, "w") as f:
+            json.dump(self.recent_projects, f, indent=4)
+            f.close()
 
 
 if __name__ == "__main__":
@@ -199,10 +236,18 @@ if __name__ == "__main__":
             themes_data = json.load(src)
         with open(THEMES_FILE, "w") as dst:
             json.dump(themes_data, dst, indent=2)
+            dst.close()
+            src.close()
+
+    if not os.path.exists(RECENT_PROJECTS_FILE):
+        with open(RECENT_PROJECTS_FILE, "w") as f:
+            json.dump([], f)
+            f.close()
 
     if not os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "w") as f:
             json.dump({"theme": "vs_code_dark"}, f, indent=4)
+            f.close()
         from init_setup import InitialSetup
 
         InitialSetup()

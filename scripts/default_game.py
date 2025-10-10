@@ -10,7 +10,7 @@ def main():
         screen = pydot.display.set_mode((0, 0), pydot.FULLSCREEN)
     else:
         screen = pydot.display.set_mode(m.resolution)
-    pydot.display.set_caption("pydot Game")
+    pydot.display.set_caption(m.name)
     clock = pydot.time.Clock()
 
     running = True

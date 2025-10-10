@@ -2,6 +2,7 @@ import json
 import os
 import re
 import subprocess
+import shutil
 from keyword import kwlist
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -20,6 +21,8 @@ class GameEditor:
         self.current_file = None
         self.game_process = None
         self.output_thread = None
+
+        self.name = name
 
         # Autocomplete setup
         self.autocomplete_popup = None
@@ -43,6 +46,8 @@ class GameEditor:
 
         save_btn = Button(top_bar, text="Save", command=self.save_file)
 
+        compile_btn = Button(top_bar, text="Compile", command=self.compile)
+
         start_btn = Button(top_bar, text="Debug", command=self.debug)
 
         text_frame = Frame(self.win)
@@ -55,6 +60,7 @@ class GameEditor:
         self.style_manager.apply_to_button(open_btn)
         self.style_manager.apply_to_button(save_btn)
         self.style_manager.apply_to_button(start_btn)
+        self.style_manager.apply_to_button(compile_btn)
         self.style_manager.apply_to_frame(text_frame)
         self.style_manager.apply_to_text(self.text_editor)
 
@@ -70,6 +76,7 @@ class GameEditor:
         open_btn.pack(side="left", padx=pad)
         save_btn.pack(side="left", padx=pad)
         start_btn.pack(side="right", padx=pad)
+        compile_btn.pack(side="right", padx=pad)
 
         # pack stuff 2 window
         self.text_editor.pack(side="left", fill="both", expand=True)
@@ -86,6 +93,7 @@ class GameEditor:
         self.win.bind("<Control-Shift-S>", lambda event: self.save_file_as())
         self.win.bind("<Control-n>", lambda event: self.new_file())
         self.win.bind("<F5>", lambda event: self.debug())
+        self.win.bind("<Control-Shift-C>", lambda event: self.compile())
 
         # Auto-completion key bindings
         self.text_editor.bind("(", lambda event: self.close("(", event))
@@ -736,3 +744,129 @@ class {class_name}:
         self.text_editor.insert(INSERT, f"\n{indent_str}")
 
         return "break"
+
+    def compile(self):
+        def confirm():
+            self.save_file()
+            spec_path = os.path.join(self.directory, "game.spec")
+
+            game_path = "game.py"
+            assets_path = "assets"
+            data_path = "data"
+            python_files = []
+            for root, _, files in os.walk(self.directory):
+                for file in files:
+                    if file.endswith(".py"):
+                        python_files.append(
+                            os.path.relpath(os.path.join(root, file), self.directory)
+                        )
+
+            datas = []
+
+            datas.append((assets_path, assets_path))
+
+            datas.append((data_path, data_path))
+
+            for py_file in python_files:
+                target_dir = os.path.dirname(py_file)
+                if target_dir:
+                    datas.append((py_file, target_dir))
+
+            datas_str = "[\n"
+            for src, dst in datas:
+                datas_str += f"    ('{src}', '{dst}'),\n"
+            datas_str += "]"
+
+            spec_content = f"""# -*- mode: python ; coding: utf-8 -*-
+
+a = Analysis(
+    ['{game_path}'],
+    pathex=['{self.directory}'],
+    binaries=[],
+    datas={datas_str},
+    hiddenimports=[],
+    hookspath=[],
+    hooksconfig={{}},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False
+)
+
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    name='game',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    onefile=True
+)
+"""
+
+            with open(spec_path, "w") as f:
+                f.write(spec_content)
+
+            try:
+                for dir_name in ["build", "dist"]:
+                    dir_path = os.path.join(self.directory, dir_name)
+                    if os.path.exists(dir_path):
+                        shutil.rmtree(dir_path)
+
+                result = subprocess.run(
+                    ["pyinstaller", "--noconfirm", spec_path],
+                    cwd=self.directory,
+                    capture_output=True,
+                    text=True,
+                )
+
+            except Exception as e:
+                print(f"Error during compilation: {e}")
+            finally:
+                if os.path.exists(spec_path):
+                    os.remove(spec_path)
+                if os.path.exists(os.path.join(self.directory, "build")):
+                    shutil.rmtree(os.path.join(self.directory, "build"))
+                if os.path.exists(os.path.join(self.directory, "dist")):
+                    shutil.move(
+                        os.path.join(self.directory, "dist", "game"),
+                        os.path.join(self.directory, self.name),
+                    )
+                    shutil.rmtree(os.path.join(self.directory, "dist"))
+                popup.destroy()
+
+        popup = Toplevel(self.win)
+
+        popup.title("Compile Game")
+        popup.resizable(False, False)
+
+        label = Label(
+            popup,
+            text="Are you sure you want to compile the game (this will take a while)?",
+        )
+        confirm_btn = Button(popup, text="Confirm", command=confirm)
+        cancel_btn = Button(popup, text="Cancel", command=popup.destroy)
+
+        self.style_manager.apply_to_window(popup)
+        self.style_manager.apply_to_label(label)
+        self.style_manager.apply_to_button(confirm_btn)
+        self.style_manager.apply_to_button(cancel_btn)
+
+        label.pack(pady=10, padx=10)
+        confirm_btn.pack(pady=10, padx=10)
+        cancel_btn.pack(pady=10, padx=10)
+
+        popup.focus_set()
+        popup.bind("<Escape>", lambda event: popup.destroy())
+
+        popup.wait_window(popup)
