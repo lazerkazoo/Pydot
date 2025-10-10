@@ -37,7 +37,7 @@ class StyleManager:
             with open(THEMES_FILE, "r") as f:
                 self.themes = json.load(f)
         except FileNotFoundError:
-            with open("themes.json", "r") as f:
+            with open(os.path.join("data", "themes.json"), "r") as f:
                 self.themes = json.load(f)
 
         self.current_theme = self.themes[theme_name]

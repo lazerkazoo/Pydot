@@ -114,7 +114,7 @@ class InitialSetup:
     def finish_step(self):
         if not os.path.exists(CONFIG_DIR):
             os.mkdir(CONFIG_DIR)
-        shutil.copyfile("themes.json", THEMES_FILE)
+        shutil.copyfile(os.path.join("data", "themes.json"), THEMES_FILE)
         config["theme"] = self.theme_combo.get()
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f)
