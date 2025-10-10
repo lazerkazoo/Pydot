@@ -34,7 +34,7 @@ class GameEditor:
         pad = self.pad
 
         self.style_manager = StyleManager()
-        self.style_manager.apply_to_window(self.win)
+        self.style_manager.apply_to(self.win)
 
         self.style = Style(self.win)
 
@@ -55,14 +55,14 @@ class GameEditor:
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
 
         # Style Stuff
-        self.style_manager.apply_to_frame(top_bar)
-        self.style_manager.apply_to_button(new_btn)
-        self.style_manager.apply_to_button(open_btn)
-        self.style_manager.apply_to_button(save_btn)
-        self.style_manager.apply_to_button(start_btn)
-        self.style_manager.apply_to_button(compile_btn)
-        self.style_manager.apply_to_frame(text_frame)
-        self.style_manager.apply_to_text(self.text_editor)
+        self.style_manager.apply_to(top_bar)
+        self.style_manager.apply_to(new_btn)
+        self.style_manager.apply_to(open_btn)
+        self.style_manager.apply_to(save_btn)
+        self.style_manager.apply_to(start_btn)
+        self.style_manager.apply_to(compile_btn)
+        self.style_manager.apply_to(text_frame)
+        self.style_manager.apply_to(self.text_editor)
 
         # Syntax Highlighting
         self.highlighter = SyntaxHighlighter(
@@ -293,11 +293,11 @@ class {class_name}:
             popup.bind("<Return>", lambda event: on_create())
             name_en.bind("<Return>", lambda event: on_create())
 
-            self.style_manager.apply_to_window(popup)
-            self.style_manager.apply_to_label(name_lbl)
-            self.style_manager.apply_to_entry(name_en)
-            self.style_manager.apply_to_button(create_btn)
-            self.style_manager.apply_to_button(cancel_btn)
+            self.style_manager.apply_to(popup)
+            self.style_manager.apply_to(name_lbl)
+            self.style_manager.apply_to(name_en)
+            self.style_manager.apply_to(create_btn)
+            self.style_manager.apply_to(cancel_btn)
             self.style_manager.apply_to_combobox(type_cb)
 
             type_cb.pack(pady=pad, fill="x")
@@ -319,10 +319,10 @@ class {class_name}:
             )
             cancel = Button(popup, command=popup.destroy, text="Cancel")
 
-            self.style_manager.apply_to_window(popup)
-            self.style_manager.apply_to_button(save)
-            self.style_manager.apply_to_button(ok)
-            self.style_manager.apply_to_button(cancel)
+            self.style_manager.apply_to(popup)
+            self.style_manager.apply_to(save)
+            self.style_manager.apply_to(ok)
+            self.style_manager.apply_to(cancel)
 
             save.pack(expand=True, fill="x", padx=pad, pady=pad)
             ok.pack(expand=True, fill="x", padx=pad, pady=pad)
@@ -425,8 +425,13 @@ class {class_name}:
             word_start = f"{word_start}-1c"
 
         # Delete the partial word and insert the suggestion
-        self.text_editor.delete(word_start, cursor_pos)
-        self.text_editor.insert(word_start, suggestion)
+        indent = ""
+        for char in line_text:
+            if char == " ":
+                indent += char
+
+        self.text_editor.delete(line_start, cursor_pos)
+        self.text_editor.insert(line_start, indent + suggestion)
 
         # Move cursor to the end of the inserted suggestion
         self.text_editor.mark_set(INSERT, f"{word_start}+{len(suggestion)}c")
@@ -471,7 +476,7 @@ class {class_name}:
         self.highlighter.highlight()
 
     def handle_return(self, event=None):
-        if self.autocomplete_suggestions:
+        if self.autocomplete_popup:
             self.insert_suggestion()
             self.hide_autocomplete()
             return "break"
@@ -589,7 +594,6 @@ class {class_name}:
         if not self.autocomplete_popup:
             self.autocomplete_popup = Toplevel(self.win)
             self.autocomplete_popup.wm_overrideredirect(True)
-            self.autocomplete_popup.configure(bg="white", relief="solid", bd=1)
 
             self.autocomplete_listbox = Listbox(
                 self.autocomplete_popup,
@@ -603,6 +607,9 @@ class {class_name}:
             self.autocomplete_listbox.bind("<Double-Button-1>", self.insert_suggestion)
             self.autocomplete_listbox.bind("<Return>", self.insert_suggestion)
             self.autocomplete_popup.bind("<Escape>", self.hide_autocomplete)
+
+            self.style_manager.apply_to(self.autocomplete_popup)
+            self.style_manager.apply_to(self.autocomplete_listbox)
 
             # Handle navigation keys
             self.text_editor.bind("<Down>", self.navigate_suggestions)
@@ -623,7 +630,7 @@ class {class_name}:
         self.position_autocomplete_popup()
 
         # Apply styling
-        self.style_manager.apply_to_listbox(self.autocomplete_listbox)
+        self.style_manager.apply_to(self.autocomplete_listbox)
 
     def position_autocomplete_popup(self):
         if not self.autocomplete_popup:
@@ -708,9 +715,9 @@ class {class_name}:
         snippet_listbox.bind("<Tab>", lambda e: insert_selected_snippet())
 
         # Apply styling
-        self.style_manager.apply_to_window(snippet_popup)
-        self.style_manager.apply_to_listbox(snippet_listbox)
-        self.style_manager.apply_to_button(insert_btn)
+        self.style_manager.apply_to(snippet_popup)
+        self.style_manager.apply_to(snippet_listbox)
+        self.style_manager.apply_to(insert_btn)
 
         # Focus and center
         snippet_popup.focus_set()
@@ -857,10 +864,10 @@ exe = EXE(
         confirm_btn = Button(popup, text="Confirm", command=confirm)
         cancel_btn = Button(popup, text="Cancel", command=popup.destroy)
 
-        self.style_manager.apply_to_window(popup)
-        self.style_manager.apply_to_label(label)
-        self.style_manager.apply_to_button(confirm_btn)
-        self.style_manager.apply_to_button(cancel_btn)
+        self.style_manager.apply_to(popup)
+        self.style_manager.apply_to(label)
+        self.style_manager.apply_to(confirm_btn)
+        self.style_manager.apply_to(cancel_btn)
 
         label.pack(pady=10, padx=10)
         confirm_btn.pack(pady=10, padx=10)

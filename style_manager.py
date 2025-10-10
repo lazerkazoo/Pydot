@@ -1,6 +1,16 @@
 import json
 import os
-from tkinter import Button, Checkbutton, Entry, Frame, Label, Listbox, Text, Tk
+from tkinter import (
+    Button,
+    Checkbutton,
+    Entry,
+    Frame,
+    Label,
+    Listbox,
+    Text,
+    Tk,
+    Toplevel,
+)
 from tkinter.ttk import Combobox, Style
 
 # Configuration paths
@@ -23,7 +33,6 @@ except (FileNotFoundError, KeyError):
 
 class StyleManager:
     def __init__(self, theme_name=theme):
-        # Load themes from config directory or fallback to local
         try:
             with open(THEMES_FILE, "r") as f:
                 self.themes = json.load(f)
@@ -34,74 +43,68 @@ class StyleManager:
         self.current_theme = self.themes[theme_name]
         self.ttk_style = Style()
 
-    def apply_to_window(self, window: Tk):
-        window.configure(bg=self.current_theme["bg_primary"])
+    def apply_to(self, widget):
+        if isinstance(widget, (Tk, Toplevel)):
+            widget.configure(
+                bg=self.current_theme["bg_primary"],
+            )
+        elif isinstance(widget, Label):
+            widget.configure(
+                bg=self.current_theme["bg_secondary"],
+                fg=self.current_theme["text_primary"],
+            )
+        elif isinstance(widget, Button):
+            widget.configure(
+                bg=self.current_theme["accent_blue"],
+                fg=self.current_theme["text_primary"],
+                activebackground=self.current_theme["bg_accent"],
+                activeforeground=self.current_theme["text_primary"],
+                borderwidth=0,
+                relief="flat",
+            )
+        elif isinstance(widget, Entry):
+            widget.configure(
+                bg=self.current_theme["bg_tertiary"],
+                fg=self.current_theme["text_primary"],
+                insertbackground=self.current_theme["text_primary"],
+                selectbackground=self.current_theme["accent_blue"],
+                selectforeground=self.current_theme["text_primary"],
+                borderwidth=1,
+                relief="solid",
+            )
+        elif isinstance(widget, Frame):
+            widget.configure(
+                bg=self.current_theme["bg_secondary"],
+            )
+        elif isinstance(widget, Text):
+            widget.configure(
+                bg=self.current_theme["bg_primary"],
+                fg=self.current_theme["text_primary"],
+                insertbackground=self.current_theme["text_primary"],
+                selectbackground=self.current_theme["accent_blue"],
+                selectforeground=self.current_theme["text_primary"],
+            )
+        elif isinstance(widget, Checkbutton):
+            widget.configure(
+                bg=self.current_theme["bg_primary"],
+                fg=self.current_theme["text_primary"],
+            )
+        elif isinstance(widget, Listbox):
+            widget.configure(
+                bg=self.current_theme["bg_primary"],
+                fg=self.current_theme["text_primary"],
+                selectbackground=self.current_theme["accent_blue"],
+                selectforeground=self.current_theme["text_primary"],
+            )
 
-    def apply_to_frame(self, frame: Frame):
-        frame.configure(bg=self.current_theme["bg_secondary"])
-
-    def apply_to_button(self, button: Button):
-        button.configure(
-            bg=self.current_theme["accent_blue"],
-            fg=self.current_theme["text_primary"],
-            activebackground=self.current_theme["bg_accent"],
-            activeforeground=self.current_theme["text_primary"],
-            borderwidth=0,
-            relief="flat",
-        )
-
-    def apply_to_label(self, label: Label):
-        label.configure(
-            bg=self.current_theme["bg_secondary"], fg=self.current_theme["text_primary"]
-        )
-
-    def apply_to_entry(self, entry: Entry):
-        entry.configure(
-            bg=self.current_theme["bg_tertiary"],
-            fg=self.current_theme["text_primary"],
-            insertbackground=self.current_theme["text_primary"],
-            selectbackground=self.current_theme["accent_blue"],
-            selectforeground=self.current_theme["text_primary"],
-            borderwidth=1,
-            relief="solid",
-        )
-
-    def apply_to_text(self, text: Text):
-        text.configure(
-            bg=self.current_theme["bg_primary"],
-            fg=self.current_theme["text_primary"],
-            insertbackground=self.current_theme["text_primary"],
-            selectbackground=self.current_theme["accent_blue"],
-            selectforeground=self.current_theme["text_primary"],
-        )
-
-    def apply_to_listbox(self, listbox: Listbox):
-        listbox.configure(
-            bg=self.current_theme["bg_primary"],
-            fg=self.current_theme["text_primary"],
-            selectbackground=self.current_theme["accent_blue"],
-            selectforeground=self.current_theme["text_primary"],
-        )
-
-    def apply_to_checkbox(self, checkbox: Checkbutton):
-        checkbox.configure(
-            bg=self.current_theme["bg_primary"],
-            fg=self.current_theme["text_primary"],
-        )
-
-    def apply_to_combobox(self, combobox: Combobox):
-        # Configure ttk.Style for Combobox
+    def apply_to_combobox(self):
         self.ttk_style.theme_use("default")
-
-        # Map the colors for different states
         self.ttk_style.map(
             "TCombobox",
             fieldbackground=[("readonly", self.current_theme["bg_tertiary"])],
             selectbackground=[("readonly", self.current_theme["accent_blue"])],
             selectforeground=[("readonly", self.current_theme["text_primary"])],
         )
-
-        # Configure the normal state
         self.ttk_style.configure(
             "TCombobox",
             fieldbackground=self.current_theme["bg_tertiary"],
