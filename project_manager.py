@@ -19,7 +19,11 @@ RECENT_PROJECTS_FILE = os.path.join(CONFIG_DIR, "recent_projects.json")
 
 # Project directory
 global start_dir
-start_dir = os.path.expanduser("~/Documents")
+
+with open(CONFIG_FILE, "r") as f:
+    config = json.load(f)
+    start_dir = config["default_project_location"]
+    f.close()
 
 if not os.path.exists(start_dir):
     os.makedirs(start_dir, exist_ok=True)
@@ -221,7 +225,7 @@ class App:
     def force_open_existing_project(self, name: str):
         self.win.destroy()
         GameEditor(name, os.path.join(start_dir, name))
-        self.recent_projects.append(os.path.join(start_dir, name))
+        self.recent_projects[(os.path.join(start_dir, name))] = name
         with open(RECENT_PROJECTS_FILE, "w") as f:
             json.dump(self.recent_projects, f, indent=4)
             f.close()

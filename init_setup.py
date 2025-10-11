@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import json
-from tkinter import Button, Label, Tk
+from tkinter import Button, Label, Tk, Entry
 from tkinter.ttk import Combobox
 
 from style_manager import StyleManager
@@ -13,6 +13,7 @@ if os.name == "nt":  # Windows
 else:  # Linux, macOS, etc.
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
+to_save = os.path.join(os.path.expanduser("~"), "Documents", "Pydot")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 
@@ -36,10 +37,16 @@ class InitialSetup:
             self.popup, text="Download", command=self.download_dependencies
         )
 
+        self.browse_btn = Button(
+            self.popup, text="Browse", command=self.browse_location
+        )
+
         self.theme_combo = Combobox(self.popup, values=list(self.style.themes.keys()))
         self.theme_combo["state"] = "readonly"
         self.theme_combo.bind("<<ComboboxSelected>>", self.preview_theme)
         self.theme_combo.set(config["theme"])
+
+        self.to_save = to_save
 
         self.steps = {
             1: {
@@ -72,6 +79,16 @@ class InitialSetup:
                 "bound": self.next_step,
             },
             4: {
+                "title": "Choose Save Location",
+                "description": f"Choose where to save your projects. Default is {to_save}.",
+                "visible": [
+                    self.browse_btn,
+                    self.back_btn,
+                    self.next_btn,
+                ],
+                "bound": self.next_step,
+            },
+            5: {
                 "title": "Finished",
                 "description": "Pydot has been installed. You can now start using it.",
                 "visible": [
@@ -89,6 +106,7 @@ class InitialSetup:
         self.style.apply_to(self.back_btn)
         self.style.apply_to(self.skip_btn)
         self.style.apply_to(self.finish_btn)
+        self.style.apply_to(self.browse_btn)
         self.style.apply_to(self.download_btn)
         self.style.apply_to_combobox()
 
@@ -116,6 +134,7 @@ class InitialSetup:
             os.mkdir(CONFIG_DIR)
         shutil.copyfile(os.path.join("data", "themes.json"), THEMES_FILE)
         config["theme"] = self.theme_combo.get()
+        config["default_project_location"] = self.to_save
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f)
             f.close()
@@ -178,7 +197,11 @@ class InitialSetup:
             except Exception as e:
                 print(f"Error applying theme preview: {e}")
 
+    def browse_location(self):
+        from tkinter.filedialog import askdirectory
 
-if __name__ == "__main__":
-    app = InitialSetup()
-    app.update_ui()
+        selected_dir = askdirectory(initialdir=self.to_save)
+        if not selected_dir or selected_dir == os.path.join("()", ""):
+            return
+        self.to_save = selected_dir
+        self.next_step()

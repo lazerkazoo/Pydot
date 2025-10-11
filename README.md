@@ -72,29 +72,10 @@ The new project will include:
 A typical Pydot project includes:
 - `main.py` - Main game file
 - `assets/` - Directory for images, sounds, and other assets
-- `src/` - Source code directory
-- `utils/` - Utility functions and classes
-- `README.md` - Project documentation
+- `scripts/` - Scripts directory
+- `data/` - Json Files directory
 
 ## Development
-
-### File Structure
-
-```
-Pydot/
-├── main.py              # Entry point
-├── init_setup.py        # Initial configuration wizard
-├── project_manager.py   # Project management interface
-├── editor.py           # Code editor with syntax highlighting
-├── style_manager.py    # Theme and styling management
-├── syntax_highlighter.py # Syntax highlighting functionality
-├── requirements.txt    # Python dependencies
-├── data/              # Configuration and template data
-│   ├── themes.json    # Available themes
-│   ├── stuff_to_make.json # Project templates
-│   └── autocomplete_data.json # Code completion data
-└── scripts/           # Utility scripts
-```
 
 ## Configuration
 
@@ -114,11 +95,4 @@ GNU General Public License v3.0
 ## Contributing
 
 Contributions are welcome! This project is designed to make Pygame development more accessible and enjoyable.
-
-## Support
-
-If you encounter any issues or have suggestions for improvements, please check the project's issue tracker or documentation.
-
-
-
 

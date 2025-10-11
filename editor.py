@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import shutil
+from pathlib import Path
 from keyword import kwlist
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -105,7 +106,6 @@ class GameEditor:
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
         self.text_editor.bind("<Return>", self.auto_indentation)
-        self.text_editor.bind("<Tab>", self.insert_spaces)
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -115,24 +115,39 @@ class GameEditor:
         self.win.mainloop()
 
     def open_file(self):
-        file_path = askopenfilename(
-            initialdir=self.directory,
-            filetypes=[
-                ("Python files", "*.py"),
-                ("Json Files", "*.json"),
-                ("All files", "*.*"),
-            ],
+        popup = Toplevel(self.win)
+        popup.title("Open File")
+        popup.geometry("400x300")
+        popup.resizable(False, False)
+
+        scrollbar = Scrollbar(popup)
+        list_of_files = []
+        listbox = Listbox(popup)
+
+        for root, _, files in os.walk(self.directory):
+            for file in files:
+                if file.endswith((".py", ".json")):
+                    rel_dir = os.path.relpath(root, self.directory)
+                    rel_file = os.path.join(rel_dir, file) if rel_dir != "." else file
+                    if not rel_dir.startswith("scripts/built_in"):
+                        list_of_files.append(rel_file)
+
+        for file in list_of_files:
+            listbox.insert(END, file)
+
+        self.style_manager.apply_to(popup)
+        self.style_manager.apply_to(listbox)
+
+        listbox.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox.yview)
+
+        listbox.bind(
+            "<Double-1>",
+            lambda event: [self.force_open_file(listbox.get(ACTIVE)), popup.destroy()],
         )
-
-        if not file_path:
-            return
-
-        with open(file_path, "r") as f:
-            self.text_editor.delete(1.0, END)
-            content = f.read()
-            self.text_editor.insert(1.0, content)
-            self.current_file = file_path
-            self.highlighter.highlight()
 
     def force_open_file(self, file: str):
         if not self.directory:
@@ -207,7 +222,8 @@ class GameEditor:
             main_file_path = f"{self.directory}/main.py"
 
             if os.path.exists(f"{self.directory}/scripts/built_in"):
-                file_content = f"""import pygame as pydot                            
+                file_content = f"""import pygame as pydot
+import json
 from scripts.built_in.text import Text
 from scripts.built_in.button import Button
 from scripts.built_in.sprite_manager import Sprite
@@ -219,22 +235,17 @@ class {class_name}:
     def __init__(self):
         # runs when the class is created
         pass
-
-    def run(self):
-        # always runs
-        pass"""
+"""
             else:
                 file_content = f"""import pygame as pydot
+import json
 
 
 class {class_name}:
     def __init__(self):
         # runs when the class is created
         pass
-
-    def run(self):
-        # always runs
-        pass"""
+"""
 
             with open(new_file_path, "w") as f:
                 if selected_type == "Python":
@@ -298,7 +309,7 @@ class {class_name}:
             self.style_manager.apply_to(name_en)
             self.style_manager.apply_to(create_btn)
             self.style_manager.apply_to(cancel_btn)
-            self.style_manager.apply_to_combobox(type_cb)
+            self.style_manager.apply_to_combobox()
 
             type_cb.pack(pady=pad, fill="x")
             name_lbl.pack(pady=pad)
@@ -672,10 +683,6 @@ class {class_name}:
         self.autocomplete_listbox.see(new_index)
 
         return "break"  # Prevent default newline behavior
-
-    def insert_spaces(self, event):
-        self.text_editor.insert(INSERT, "    ")
-        return "break"  # Prevent default tab behavior
 
     def show_snippet_menu(self):
         if not self.code_snippets:

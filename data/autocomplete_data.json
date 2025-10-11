@@ -34,7 +34,8 @@
     "try",
     "while",
     "with",
-    "yield"
+    "yield",
+    "json"
   ],
   "python_builtins": [
     "abs",
@@ -451,7 +452,10 @@
     "pydot.display.flip()",
     "clock.tick(",
     "pydot.quit()",
-    "sys.exit()"
+    "sys.exit()",
+    "json.load(",
+    "json.dump(",
+    "with open("
   ],
   "code_snippets": {
     "pydot_init": "pydot.init()\nscreen = pydot.display.set_mode((800, 600))\nclock = pydot.time.Clock()",

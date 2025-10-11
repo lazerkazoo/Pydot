@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 # Only run if this file is executed directly, not imported
 if __name__ == "__main__":
@@ -9,6 +8,12 @@ if __name__ == "__main__":
         CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
     if not os.path.exists(CONFIG_DIR):
-        subprocess.run(["python", "init_setup.py"])
+        print("Configuration directory not found. Running initial setup...")
+        from init_setup import InitialSetup
+
+        setup = InitialSetup()
+        setup.update_ui()
     else:
-        subprocess.run(["python", "project_manager.py"])
+        from project_manager import App
+
+        app = App()
