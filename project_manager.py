@@ -17,6 +17,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 RECENT_PROJECTS_FILE = os.path.join(CONFIG_DIR, "recent_projects.json")
 
+
 # Project directory
 global start_dir
 
@@ -68,10 +69,14 @@ class App:
             self.recent_projects = json.load(f)
             f.close()
 
-        for num, project in enumerate(reversed(self.recent_projects)):
-            if num > 10:
-                break
-            recent_projects_listbox.insert(END, os.path.basename(project))
+        for project in reversed(self.recent_projects):
+            if os.path.exists(project):
+                recent_projects_listbox.insert(END, os.path.basename(project))
+            else:
+                self.recent_projects.pop(project)
+            with open(RECENT_PROJECTS_FILE, "w") as f:
+                json.dump(self.recent_projects, f)
+                f.close()
 
         top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
         new_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
@@ -117,9 +122,12 @@ class App:
         def create():
             global directory
             directory += f"/{name_en.get()}"
-            if directory != "":
-                os.mkdir(directory)
-
+            if directory != "" or directory != os.path.join("()", ""):
+                try:
+                    os.mkdir(directory)
+                except FileExistsError:
+                    print("Project already exists, open project")
+                    self.force_open_existing_project(directory)
                 if copy_classes.get():
                     for dir in dirs_to_make["no"]:
                         os.mkdir(f"{directory}/{dir}")
@@ -217,7 +225,9 @@ class App:
         project_name = os.path.basename(directory)
         self.win.destroy()
         GameEditor(project_name, directory)
+
         self.recent_projects[directory] = project_name
+
         with open(RECENT_PROJECTS_FILE, "w") as f:
             json.dump(self.recent_projects, f, indent=4)
             f.close()
@@ -225,7 +235,9 @@ class App:
     def force_open_existing_project(self, name: str):
         self.win.destroy()
         GameEditor(name, os.path.join(start_dir, name))
+
         self.recent_projects[(os.path.join(start_dir, name))] = name
+
         with open(RECENT_PROJECTS_FILE, "w") as f:
             json.dump(self.recent_projects, f, indent=4)
             f.close()

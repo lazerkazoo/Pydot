@@ -1,14 +1,14 @@
 import json
 import os
 import re
-import subprocess
 import shutil
-from pathlib import Path
+import subprocess
 from keyword import kwlist
 from tkinter import *
-from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter.filedialog import asksaveasfilename
 from tkinter.ttk import Combobox, Style
 
+from settings_manager import SettingsManager
 from style_manager import StyleManager
 from syntax_highlighter import SyntaxHighlighter
 
@@ -22,6 +22,7 @@ class GameEditor:
         self.current_file = None
         self.game_process = None
         self.output_thread = None
+        self.settings_manager = SettingsManager()
 
         self.name = name
 
@@ -51,6 +52,10 @@ class GameEditor:
 
         start_btn = Button(top_bar, text="Debug", command=self.debug)
 
+        settings_btn = Button(
+            top_bar, text="Settings", command=self.settings_manager.open_settings
+        )
+
         text_frame = Frame(self.win)
         self.text_editor = Text(text_frame, wrap="none", tabs="0.85c")
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
@@ -62,6 +67,7 @@ class GameEditor:
         self.style_manager.apply_to(save_btn)
         self.style_manager.apply_to(start_btn)
         self.style_manager.apply_to(compile_btn)
+        self.style_manager.apply_to(settings_btn)
         self.style_manager.apply_to(text_frame)
         self.style_manager.apply_to(self.text_editor)
 
@@ -73,6 +79,7 @@ class GameEditor:
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
+        settings_btn.pack(side="left", padx=pad)
         new_btn.pack(side="left", padx=pad)
         open_btn.pack(side="left", padx=pad)
         save_btn.pack(side="left", padx=pad)
@@ -106,6 +113,7 @@ class GameEditor:
         self.text_editor.bind("<KeyRelease>", self.on_key_release)
         self.text_editor.bind("<Control-Tab>", lambda event: self.show_snippet_menu())
         self.text_editor.bind("<Return>", self.auto_indentation)
+        self.text_editor.bind("<Tab>", self.insert_indentation)
 
         # Make Key Binds Work
         self.text_editor.focus_set()
@@ -203,17 +211,40 @@ class GameEditor:
 
         def create(file: str, type_cb):
             new_file_path = ""
+            for char in file:
+                if char == " ":
+                    file = file.replace(" ", "_")
+                if char.isdigit():
+                    if file.index(char) != 0:
+                        file = file.replace(char, f"_{char.lower()}")
             file = file.lower()
 
             if not file.strip():
                 return
 
             class_name = file.capitalize()
+            for char in class_name:
+                if char == "_":
+                    idx = class_name.index(char)
+                    if idx + 1 < len(class_name):
+                        class_name = (
+                            class_name[:idx]
+                            + class_name[idx + 1].upper()
+                            + class_name[idx + 2 :]
+                        )
+                elif char == " ":
+                    idx = class_name.index(char)
+                    if idx + 1 < len(class_name):
+                        class_name = (
+                            class_name[:idx]
+                            + class_name[idx + 1].upper()
+                            + class_name[idx + 2 :]
+                        )
+
             selected_type = type_cb.get()
 
             for i in types:
                 if i == selected_type:
-                    print(types[selected_type][0], types[selected_type][1])
                     if not os.path.exists(f"{self.directory}{types[selected_type][1]}"):
                         os.mkdir(f"{self.directory}{types[selected_type][1]}")
                     new_file_path = f"{self.directory}{types[selected_type][1]}{file}{types[selected_type][0]}"
@@ -249,7 +280,7 @@ class {class_name}:
 
             with open(new_file_path, "w") as f:
                 if selected_type == "Python":
-                    f.write(f"import pygame as pydot")
+                    f.write("import pygame as pydot")
                 elif selected_type == "Pydot Class":
                     f.write(file_content)
                 elif selected_type == "Json":
@@ -272,6 +303,7 @@ class {class_name}:
                 self.text_editor.delete(1.0, END)
                 self.text_editor.insert(1.0, f.read())
                 self.current_file = new_file_path
+            self.save_file()
 
         def create_new():
             def on_create():
@@ -424,25 +456,28 @@ class {class_name}:
         # Get the current cursor position and line content
         cursor_pos = self.text_editor.index(INSERT)
         line_start = self.text_editor.index(f"{cursor_pos} linestart")
-        line_text = self.text_editor.get(line_start, cursor_pos)
 
         # Find the start of the current word
         word_start = cursor_pos
-        while (
-            word_start > line_start
-            and self.text_editor.get(f"{word_start}-1c", word_start).isalnum()
-            or self.text_editor.get(f"{word_start}-1c", word_start) == "."
-        ):
+        while word_start > line_start:
+            char_before = self.text_editor.get(f"{word_start}-1c", word_start)
+            if not (char_before.isalnum() or char_before in "._"):
+                break
             word_start = f"{word_start}-1c"
 
-        # Delete the partial word and insert the suggestion
+        # Clean the suggestion - strip leading and trailing whitespace
         indent = ""
-        for char in line_text:
+        for char in self.text_editor.get(line_start, END):
             if char == " ":
                 indent += char
+            else:
+                break
 
-        self.text_editor.delete(line_start, cursor_pos)
-        self.text_editor.insert(line_start, indent + suggestion)
+        # Delete the partial word and insert the cleaned suggestion
+        self.text_editor.delete(word_start, cursor_pos)
+        self.text_editor.insert(word_start, indent + suggestion)
+        self.text_editor.delete(INSERT, f"{INSERT}+{len(indent)}c")
+        self.text_editor.delete(line_start, f"{line_start}+1c")
 
         # Move cursor to the end of the inserted suggestion
         self.text_editor.mark_set(INSERT, f"{word_start}+{len(suggestion)}c")
@@ -479,7 +514,7 @@ class {class_name}:
         current_word = self.get_current_word()
 
         # Show autocomplete if word is at least 2 characters
-        if len(current_word) >= 2:
+        if len(current_word) >= 1:
             self.show_autocomplete(current_word)
         else:
             self.hide_autocomplete()
@@ -487,13 +522,13 @@ class {class_name}:
         self.highlighter.highlight()
 
     def handle_return(self, event=None):
-        if self.autocomplete_popup:
+        if self.autocomplete_popup is not None:
             self.insert_suggestion()
             self.hide_autocomplete()
             return "break"
         else:
-            self.auto_indentation()
-            return "continue"
+            self.auto_indentation(event)
+            return "break"
 
     def get_current_word(self):
         cursor_pos = self.text_editor.index(INSERT)
@@ -732,31 +767,41 @@ class {class_name}:
         snippet_popup.grab_set()
 
     def auto_indentation(self, event):
-        current_pos = self.text_editor.index(INSERT)
+        current_pos = self.text_editor.index("insert")
+
         current_line = self.text_editor.get(
             f"{current_pos.split('.')[0]}.0", current_pos
         )
 
         indent_level = 0
-        spaces_count = 0
 
-        for char in current_line:
-            if char == " ":
-                spaces_count += 1
-                if spaces_count % 4 == 0:
-                    indent_level += 1
-            elif char == "\t":
+        # Count existing indentation (4 spaces = 1 level)
+        i = 0
+        while i < len(current_line):
+            if current_line[i : i + 4] == "    ":
                 indent_level += 1
-                spaces_count = 0
+                i += 4
+            elif current_line[i] == "\t":
+                indent_level += 1
+                i += 1
+            elif current_line[i] == " ":
+                i += 1  # Skip single spaces
             else:
                 break
 
+        # Check if the current line ends with a colon (indicating a new block)
         stripped_line = current_line.strip()
         if stripped_line.endswith(":"):
             indent_level += 1
-        indent_str = "    " * indent_level
-        self.text_editor.insert(INSERT, f"\n{indent_str}")
 
+        indent_str = "    " * indent_level
+        self.text_editor.insert("insert", f"\n{indent_str}")
+
+        return "break"
+
+    def insert_indentation(self, event):
+        cursor_pos = self.text_editor.index(INSERT)
+        self.text_editor.insert(cursor_pos, "    ")
         return "break"
 
     def compile(self):

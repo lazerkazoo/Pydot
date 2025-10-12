@@ -1,17 +1,7 @@
 import json
 import os
-from tkinter import (
-    Button,
-    Checkbutton,
-    Entry,
-    Frame,
-    Label,
-    Listbox,
-    Text,
-    Tk,
-    Toplevel,
-)
-from tkinter.ttk import Combobox, Style
+from tkinter import *
+from tkinter.ttk import Style
 
 # Configuration paths
 if os.name == "nt":  # Windows
@@ -32,7 +22,11 @@ except (FileNotFoundError, KeyError):
 
 
 class StyleManager:
-    def __init__(self, theme_name=theme):
+    def __init__(self, theme_name: str = theme):
+        self.themes: dict[str, dict[str, str]]
+        self.current_theme: dict[str, str]
+        self.ttk_style: Style
+
         try:
             with open(THEMES_FILE, "r") as f:
                 self.themes = json.load(f)
@@ -41,6 +35,7 @@ class StyleManager:
                 self.themes = json.load(f)
 
         self.current_theme = self.themes[theme_name]
+
         self.ttk_style = Style()
 
     def apply_to(self, widget):
@@ -55,9 +50,9 @@ class StyleManager:
             )
         elif isinstance(widget, Button):
             widget.configure(
-                bg=self.current_theme["accent_blue"],
+                bg=self.current_theme["accent"],
                 fg=self.current_theme["text_primary"],
-                activebackground=self.current_theme["bg_accent"],
+                activebackground=self.current_theme["accent"],
                 activeforeground=self.current_theme["text_primary"],
                 borderwidth=0,
                 relief="flat",
@@ -67,7 +62,7 @@ class StyleManager:
                 bg=self.current_theme["bg_tertiary"],
                 fg=self.current_theme["text_primary"],
                 insertbackground=self.current_theme["text_primary"],
-                selectbackground=self.current_theme["accent_blue"],
+                selectbackground=self.current_theme["accent"],
                 selectforeground=self.current_theme["text_primary"],
                 borderwidth=1,
                 relief="solid",
@@ -81,7 +76,7 @@ class StyleManager:
                 bg=self.current_theme["bg_primary"],
                 fg=self.current_theme["text_primary"],
                 insertbackground=self.current_theme["text_primary"],
-                selectbackground=self.current_theme["accent_blue"],
+                selectbackground=self.current_theme["accent"],
                 selectforeground=self.current_theme["text_primary"],
             )
         elif isinstance(widget, Checkbutton):
@@ -93,7 +88,7 @@ class StyleManager:
             widget.configure(
                 bg=self.current_theme["bg_primary"],
                 fg=self.current_theme["text_primary"],
-                selectbackground=self.current_theme["accent_blue"],
+                selectbackground=self.current_theme["accent"],
                 selectforeground=self.current_theme["text_primary"],
             )
 
@@ -102,7 +97,7 @@ class StyleManager:
         self.ttk_style.map(
             "TCombobox",
             fieldbackground=[("readonly", self.current_theme["bg_tertiary"])],
-            selectbackground=[("readonly", self.current_theme["accent_blue"])],
+            selectbackground=[("readonly", self.current_theme["accent"])],
             selectforeground=[("readonly", self.current_theme["text_primary"])],
         )
         self.ttk_style.configure(
@@ -112,6 +107,6 @@ class StyleManager:
             foreground=self.current_theme["text_primary"],
             arrowcolor=self.current_theme["text_primary"],
             bordercolor=self.current_theme["border"],
-            lightcolor=self.current_theme["bg_accent"],
-            darkcolor=self.current_theme["bg_accent"],
+            lightcolor=self.current_theme["accent"],
+            darkcolor=self.current_theme["accent"],
         )

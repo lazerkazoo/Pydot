@@ -454,8 +454,7 @@
     "pydot.quit()",
     "sys.exit()",
     "json.load(",
-    "json.dump(",
-    "with open("
+    "json.dump("
   ],
   "code_snippets": {
     "pydot_init": "pydot.init()\nscreen = pydot.display.set_mode((800, 600))\nclock = pydot.time.Clock()",

@@ -41,10 +41,14 @@ class InitialSetup:
             self.popup, text="Browse", command=self.browse_location
         )
 
-        self.theme_combo = Combobox(self.popup, values=list(self.style.themes.keys()))
+        self.theme_combo = Combobox(self.popup)
         self.theme_combo["state"] = "readonly"
         self.theme_combo.bind("<<ComboboxSelected>>", self.preview_theme)
-        self.theme_combo.set(config["theme"])
+        themes = []
+        for theme in self.style.themes.values():
+            themes.append(theme["name"])
+        self.theme_combo["values"] = themes
+        self.theme_combo.set(themes[0])
 
         self.to_save = to_save
 
@@ -133,7 +137,10 @@ class InitialSetup:
         if not os.path.exists(CONFIG_DIR):
             os.mkdir(CONFIG_DIR)
         shutil.copyfile(os.path.join("data", "themes.json"), THEMES_FILE)
-        config["theme"] = self.theme_combo.get()
+        for theme, data in self.style.themes.items():
+            if data["name"] == self.theme_combo.get():
+                config["theme"] = theme
+                break
         config["default_project_location"] = self.to_save
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f)
@@ -156,9 +163,9 @@ class InitialSetup:
         self.popup.geometry("400x200")
         self.popup.resizable(False, False)
 
-        desc = Label(self.popup, text=step["description"], wraplength=350)
-        self.style.apply_to(desc)
-        desc.pack(pady=10)
+        self.desc = Label(self.popup, text=step["description"], wraplength=350)
+        self.style.apply_to(self.desc)
+        self.desc.pack(pady=10)
 
         for widget in reversed(step["visible"]):
             if isinstance(widget, Button):
@@ -185,17 +192,20 @@ class InitialSetup:
         self.popup.geometry(f"+{x}+{y}")
 
     def preview_theme(self, event=None):
-        selected_theme = self.theme_combo.get()
-        if selected_theme and selected_theme in self.style.themes:
-            self.style.current_theme = self.style.themes[selected_theme]
+        for theme, data in self.style.themes.items():
+            if data["name"] == self.theme_combo.get():
+                self.style.current_theme = self.style.themes[theme]
+                break
 
-            try:
-                self.style.apply_to(self.popup)
-                for widget in self.popup.winfo_children():
-                    self.style.apply_to(widget)
-                self.style.apply_to_combobox()
-            except Exception as e:
-                print(f"Error applying theme preview: {e}")
+        self.style.apply_to(self.popup)
+        self.style.apply_to(self.next_btn)
+        self.style.apply_to(self.back_btn)
+        self.style.apply_to(self.skip_btn)
+        self.style.apply_to(self.finish_btn)
+        self.style.apply_to(self.browse_btn)
+        self.style.apply_to(self.download_btn)
+        self.style.apply_to(self.desc)
+        self.style.apply_to_combobox()
 
     def browse_location(self):
         from tkinter.filedialog import askdirectory

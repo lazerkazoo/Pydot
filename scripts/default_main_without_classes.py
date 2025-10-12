@@ -8,5 +8,5 @@ name = "pydot game"
 
 
 def main(screen: pydot.Surface):
-    # put stuff here
+    # Put you code here
     pass
