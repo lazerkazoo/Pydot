@@ -17,9 +17,9 @@ Pydot is a Python-based IDE for Pygame development. It provides a complete devel
 
 Make sure you have Python installed on your system. Pydot requires Python 3.x.
 
-### Dep"end"encies
+### Dependencies
 
-Install the required dep"end"encies using pip:
+Install the required dependencies using pip:
 
 ```bash
 pip install -r requirements.txt
@@ -42,7 +42,7 @@ python main.py
 
 The setup wizard will:
 1. Welcome you to Pydot
-2. Offer to download required dep"end"encies
+2. Offer to download required dependencies
 3. Let you choose a visual theme
 4. Configure your development environment
 
