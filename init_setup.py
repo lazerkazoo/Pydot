@@ -13,7 +13,7 @@ if os.name == "nt":  # Windows
 else:  # Linux, macOS, etc.
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pydot")
 
-to_save = os.path.join(os.path.expanduser("~"), "Documents", "Pydot")
+to_save = os.path.join(os.path.expanduser("~"), "PydotProjects")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 
@@ -210,7 +210,7 @@ class InitialSetup:
     def browse_location(self):
         from tkinter.filedialog import askdirectory
 
-        selected_dir = askdirectory(initialdir=self.to_save)
+        selected_dir = askdirectory(initialdir=os.path.expanduser("~"))
         if not selected_dir or selected_dir == os.path.join("()", ""):
             return
         self.to_save = selected_dir

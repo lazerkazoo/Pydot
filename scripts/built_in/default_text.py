@@ -17,15 +17,15 @@ class Text:
         self.anti_a = anti_a
         self.txt_color = txt_color
         self.bg_color = bg_color
-        self.rendered = self.font.render(self.text, anti_a, txt_color, bg_color)
+        self.r"end"ered = self.font.r"end"er(self.text, anti_a, txt_color, bg_color)
 
-        self.rect = self.rendered.get_rect()
+        self.rect = self.r"end"ered.get_rect()
 
         self.connected: list[Callable] = []
 
     def draw(self, screen: pygame.Surface):
-        screen.blit(self.rendered, self.rect)
+        screen.blit(self.r"end"ered, self.rect)
         if self.last_text != self.text:
-            self.rendered = self.font.render(
+            self.r"end"ered = self.font.r"end"er(
                 self.text, self.anti_a, self.txt_color, self.bg_color
             )

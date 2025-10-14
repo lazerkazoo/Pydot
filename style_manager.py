@@ -71,6 +71,11 @@ class StyleManager:
             widget.configure(
                 bg=self.current_theme["bg_secondary"],
             )
+        elif isinstance(widget, LabelFrame):
+            widget.configure(
+                bg=self.current_theme["bg_secondary"],
+                fg=self.current_theme["text_primary"],
+            )
         elif isinstance(widget, Text):
             widget.configure(
                 bg=self.current_theme["bg_primary"],

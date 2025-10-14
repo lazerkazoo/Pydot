@@ -56,6 +56,10 @@ class GameEditor:
             top_bar, text="Settings", command=self.settings_manager.open_settings
         )
 
+        tile_map_btn = Button(
+            top_bar, text="Tile Map Editor", command=self.tile_map_editor
+        )
+
         text_frame = Frame(self.win)
         self.text_editor = Text(text_frame, wrap="none", tabs="0.85c")
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
@@ -69,6 +73,7 @@ class GameEditor:
         self.style_manager.apply_to(compile_btn)
         self.style_manager.apply_to(settings_btn)
         self.style_manager.apply_to(text_frame)
+        self.style_manager.apply_to(tile_map_btn)
         self.style_manager.apply_to(self.text_editor)
 
         # Syntax Highlighting
@@ -79,6 +84,7 @@ class GameEditor:
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
+        tile_map_btn.pack(side="left", padx=pad)
         settings_btn.pack(side="left", padx=pad)
         new_btn.pack(side="left", padx=pad)
         open_btn.pack(side="left", padx=pad)
@@ -141,7 +147,7 @@ class GameEditor:
                         list_of_files.append(rel_file)
 
         for file in list_of_files:
-            listbox.insert(END, file)
+            listbox.insert("end", file)
 
         self.style_manager.apply_to(popup)
         self.style_manager.apply_to(listbox)
@@ -162,14 +168,14 @@ class GameEditor:
             return
 
         with open(f"{self.directory}/{file}", "r") as f:
-            self.text_editor.delete(1.0, END)
+            self.text_editor.delete(1.0, "end")
             content = f.read()
             self.text_editor.insert(1.0, content)
             self.current_file = f"{self.directory}/{file}"
             self.highlighter.highlight()
 
     def save_file(self):
-        text = self.text_editor.get(1.0, END)
+        text = self.text_editor.get(1.0, "end")
         if self.current_file:
             with open(self.current_file, "w") as f:
                 f.write(text)
@@ -177,7 +183,7 @@ class GameEditor:
             self.save_file_as()
 
     def save_file_as(self):
-        text = self.text_editor.get(1.0, END)
+        text = self.text_editor.get(1.0, "end")
         file_path = asksaveasfilename(
             initialdir=self.directory,
             defaultextension=".py",
@@ -300,7 +306,7 @@ class {class_name}:
                         w.write(updated_content)
 
             with open(new_file_path, "r") as f:
-                self.text_editor.delete(1.0, END)
+                self.text_editor.delete(1.0, "end")
                 self.text_editor.insert(1.0, f.read())
                 self.current_file = new_file_path
             self.save_file()
@@ -467,7 +473,7 @@ class {class_name}:
 
         # Clean the suggestion - strip leading and trailing whitespace
         indent = ""
-        for char in self.text_editor.get(line_start, END):
+        for char in self.text_editor.get(line_start, "end"):
             if char == " ":
                 indent += char
             else:
@@ -479,7 +485,7 @@ class {class_name}:
         self.text_editor.delete(INSERT, f"{INSERT}+{len(indent)}c")
         self.text_editor.delete(line_start, f"{line_start}+1c")
 
-        # Move cursor to the end of the inserted suggestion
+        # Move cursor to the "end" of the inserted suggestion
         self.text_editor.mark_set(INSERT, f"{word_start}+{len(suggestion)}c")
 
         # Hide the autocomplete popup
@@ -592,7 +598,7 @@ class {class_name}:
 
     def get_context_suggestions(self, partial_word):
         suggestions = []
-        content = self.text_editor.get(1.0, END)
+        content = self.text_editor.get(1.0, "end")
 
         # Find class names
         class_pattern = r"class\s+(\w+)"
@@ -664,9 +670,9 @@ class {class_name}:
 
         # Clear and populate listbox
         if self.autocomplete_listbox:
-            self.autocomplete_listbox.delete(0, END)
+            self.autocomplete_listbox.delete(0, "end")
             for suggestion in suggestions:
-                self.autocomplete_listbox.insert(END, suggestion)
+                self.autocomplete_listbox.insert("end", suggestion)
 
             # Select first item
             if suggestions:
@@ -713,7 +719,7 @@ class {class_name}:
         else:  # Up
             new_index = max(current_index - 1, 0)
 
-        self.autocomplete_listbox.selection_clear(0, END)
+        self.autocomplete_listbox.selection_clear(0, "end")
         self.autocomplete_listbox.selection_set(new_index)
         self.autocomplete_listbox.see(new_index)
 
@@ -732,7 +738,7 @@ class {class_name}:
         snippet_listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
         for snippet_name in self.code_snippets.keys():
-            snippet_listbox.insert(END, snippet_name)
+            snippet_listbox.insert("end", snippet_name)
 
         def insert_selected_snippet():
             selection = snippet_listbox.curselection()
@@ -789,7 +795,7 @@ class {class_name}:
             else:
                 break
 
-        # Check if the current line ends with a colon (indicating a new block)
+        # Check if the current line "end"s with a colon (indicating a new block)
         stripped_line = current_line.strip()
         if stripped_line.endswith(":"):
             indent_level += 1
@@ -929,3 +935,8 @@ exe = EXE(
         popup.bind("<Escape>", lambda event: popup.destroy())
 
         popup.wait_window(popup)
+
+    def tile_map_editor(self):
+        from tile_map_editor import TileMapEditor
+
+        TileMapEditor(32, "tile.png")

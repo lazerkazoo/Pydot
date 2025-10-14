@@ -4,6 +4,7 @@ import shutil
 from tkinter import *
 from tkinter.filedialog import askdirectory
 
+from settings_manager import SettingsManager
 from editor import GameEditor
 from style_manager import StyleManager
 
@@ -17,12 +18,13 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")
 RECENT_PROJECTS_FILE = os.path.join(CONFIG_DIR, "recent_projects.json")
 
-
 # Project directory
 global start_dir
 
 with open(CONFIG_FILE, "r") as f:
     config = json.load(f)
+    if not os.path.exists(config["default_project_location"]):
+        os.mkdir(config["default_project_location"])
     start_dir = config["default_project_location"]
     f.close()
 
@@ -63,24 +65,32 @@ class App:
             command=self.open_existing_project,
         )
 
+        settings_btn = Button(
+            top_bar,
+            text="Settings",
+            command=self.open_settings,
+        )
+
         recent_projects_listbox = Listbox(self.win)
 
         with open(RECENT_PROJECTS_FILE, "r") as f:
             self.recent_projects = json.load(f)
             f.close()
 
-        for project in reversed(self.recent_projects):
-            if os.path.exists(project):
-                recent_projects_listbox.insert(END, os.path.basename(project))
-            else:
-                self.recent_projects.pop(project)
-            with open(RECENT_PROJECTS_FILE, "w") as f:
-                json.dump(self.recent_projects, f)
-                f.close()
+        if self.recent_projects:
+            for project in reversed(self.recent_projects):
+                if os.path.exists(project):
+                    recent_projects_listbox.insert("end", os.path.basename(project))
+                else:
+                    self.recent_projects.pop(project)
+                with open(RECENT_PROJECTS_FILE, "w") as f:
+                    json.dump(self.recent_projects, f)
+                    f.close()
 
         top_bar.grid(padx=pad, pady=pad, row=0, column=0, columnspan=1, sticky="we")
         new_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
         open_project_btn.pack(padx=pad, side="left", expand=True, fill="x")
+        settings_btn.pack(padx=pad, side="left", expand=True, fill="x")
         recent_projects_listbox.grid(
             padx=pad, pady=pad, row=1, column=0, columnspan=1, sticky="wens"
         )
@@ -88,6 +98,7 @@ class App:
         self.style.apply_to(top_bar)
         self.style.apply_to(new_project_btn)
         self.style.apply_to(open_project_btn)
+        self.style.apply_to(settings_btn)
         self.style.apply_to(recent_projects_listbox)
 
         self.win.bind("<Control-n>", lambda event: self.create_new_project())
@@ -110,11 +121,16 @@ class App:
             f.close()
 
         def browse():
-            global directory, start_dir
+            global directory
+            start_dir = ""
+            if not os.path.exists(config["default_project_location"]):
+                os.mkdir(config["default_project_location"])
+                start_dir = config["default_project_location"]
+
             popup.withdraw()
             directory = askdirectory(initialdir=start_dir)
             popup.deiconify()
-            location_en.delete(0, END)
+            location_en.delete(0, "end")
             location_en.insert(0, f"{directory}/")
             popup.focus_set()
             popup.lift()
@@ -183,7 +199,7 @@ class App:
         copy_classes = BooleanVar(value=True)
         copy_classes_check = Checkbutton(
             popup,
-            text="Copy Pydot Specific Classes (recommended)?",
+            text="Copy Pydot Specific Classes (recommend)?",
             variable=copy_classes,
         )
 
@@ -220,7 +236,10 @@ class App:
         popup.mainloop()
 
     def open_existing_project(self):
-        global start_dir
+        start_dir = ""
+        if not os.path.exists(config["default_project_location"]):
+            os.mkdir(config["default_project_location"])
+            start_dir = config["default_project_location"]
         directory = askdirectory(title="Select Project Directory", initialdir=start_dir)
         project_name = os.path.basename(directory)
         self.win.destroy()
@@ -241,6 +260,10 @@ class App:
         with open(RECENT_PROJECTS_FILE, "w") as f:
             json.dump(self.recent_projects, f, indent=4)
             f.close()
+
+    def open_settings(self):
+        settings_man = SettingsManager()
+        settings_man.open_settings()
 
 
 if __name__ == "__main__":
