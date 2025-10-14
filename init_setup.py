@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import json
-from tkinter import Button, Label, Tk, Entry
+from tkinter import Button, Label, Tk, messagebox
 from tkinter.ttk import Combobox
 
 from style_manager import StyleManager
@@ -76,7 +76,6 @@ class InitialSetup:
                 "description": "Choose a theme for Pydot.",
                 "visible": [
                     self.theme_combo,
-                    self.skip_btn,
                     self.back_btn,
                     self.next_btn,
                 ],
@@ -130,7 +129,7 @@ class InitialSetup:
         try:
             subprocess.run(["pip", "install", "-r", "requirements.txt"])
         except Exception as e:
-            print(f"Error downloading dependencies: {e}")
+            messagebox.showinfo("error", str(e))
         self.next_step()
 
     def finish_step(self):

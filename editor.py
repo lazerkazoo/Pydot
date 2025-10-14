@@ -3,10 +3,12 @@ import os
 import re
 import shutil
 import subprocess
+import importlib
 from keyword import kwlist
 from tkinter import *
 from tkinter.filedialog import asksaveasfilename
 from tkinter.ttk import Combobox, Style
+from types import new_class
 
 from settings_manager import SettingsManager
 from style_manager import StyleManager
@@ -102,6 +104,7 @@ class GameEditor:
         self.win.bind("<Control-n>", lambda event: self.new_file())
         self.win.bind("<F5>", lambda event: self.debug())
         self.win.bind("<Control-Shift-C>", lambda event: self.compile())
+        self.win.bind("<Control-Shift-R>", lambda event: self.reload())
 
         # Auto-completion key bindings
         self.text_editor.bind("(", lambda event: self.close("(", event))
@@ -121,6 +124,10 @@ class GameEditor:
         self.force_open_file("main.py")
 
         self.win.mainloop()
+
+    def reload(self):
+        self.win.withdraw()
+        GameEditor(self.name, self.directory)
 
     def open_file(self):
         popup = Toplevel(self.win)

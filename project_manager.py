@@ -122,15 +122,22 @@ class App:
 
         def browse():
             global directory
-            start_dir = ""
-            if not os.path.exists(config["default_project_location"]):
-                os.mkdir(config["default_project_location"])
-                start_dir = config["default_project_location"]
+            if not config["default_project_location"]:
+                config["default_project_location"] = os.path.join(
+                    os.path.expanduser("~"), "PydotProjects"
+                )
+                with open(os.path.join(CONFIG_DIR, "config.json"), "w") as f:
+                    json.dump(config, f, indent=4)
+                    f.close()
+                os.mkdir(os.path.join(os.path.expanduser("~"), "PydotProjects"))
+
+            start_dir = config["default_project_location"]
 
             popup.withdraw()
             directory = askdirectory(initialdir=start_dir)
             popup.deiconify()
             location_en.delete(0, "end")
+            print(directory)
             location_en.insert(0, f"{directory}/")
             popup.focus_set()
             popup.lift()
@@ -236,10 +243,17 @@ class App:
         popup.mainloop()
 
     def open_existing_project(self):
-        start_dir = ""
-        if not os.path.exists(config["default_project_location"]):
-            os.mkdir(config["default_project_location"])
-            start_dir = config["default_project_location"]
+        if not config["default_project_location"]:
+            config["default_project_location"] = os.path.join(
+                os.path.expanduser("~"), "PydotProjects"
+            )
+            with open(os.path.join(CONFIG_DIR, "config.json"), "w") as f:
+                json.dump(config, f, indent=4)
+                f.close()
+            os.mkdir(os.path.join(os.path.expanduser("~"), "PydotProjects"))
+
+        start_dir = config["default_project_location"]
+
         directory = askdirectory(title="Select Project Directory", initialdir=start_dir)
         project_name = os.path.basename(directory)
         self.win.destroy()
