@@ -56,10 +56,6 @@ class GameEditor:
             top_bar, text="Settings", command=self.settings_manager.open_settings
         )
 
-        tile_map_btn = Button(
-            top_bar, text="Tile Map Editor", command=self.tile_map_editor
-        )
-
         text_frame = Frame(self.win)
         self.text_editor = Text(text_frame, wrap="none", tabs="0.85c")
         scrollbar = Scrollbar(text_frame, command=self.text_editor.yview)
@@ -73,7 +69,6 @@ class GameEditor:
         self.style_manager.apply_to(compile_btn)
         self.style_manager.apply_to(settings_btn)
         self.style_manager.apply_to(text_frame)
-        self.style_manager.apply_to(tile_map_btn)
         self.style_manager.apply_to(self.text_editor)
 
         # Syntax Highlighting
@@ -84,7 +79,6 @@ class GameEditor:
         self.text_editor.config(yscrollcommand=scrollbar.set)
 
         # pack stuff 2 top bar
-        tile_map_btn.pack(side="left", padx=pad)
         settings_btn.pack(side="left", padx=pad)
         new_btn.pack(side="left", padx=pad)
         open_btn.pack(side="left", padx=pad)
@@ -935,8 +929,3 @@ exe = EXE(
         popup.bind("<Escape>", lambda event: popup.destroy())
 
         popup.wait_window(popup)
-
-    def tile_map_editor(self):
-        from tile_map_editor import TileMapEditor
-
-        TileMapEditor(32, "tile.png")
